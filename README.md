@@ -1,218 +1,85 @@
-Welcome to your new TanStack Start app!
+# Make the Number
 
-# Getting Started
+A free daily number puzzle. Every day, everyone gets the same 6 tiles and a target from 101 to 999, and builds the target by merging two tiles at a time with + − × ÷. Answers that need more tiles and more kinds of operation score higher; wasted steps such as × 1 or + 7 − 7 are refused.
 
-To run this application:
+Built with TanStack Start alone: its server renders the game, checks answers and stores them in SQLite. No other backend service.
+
+## Run it
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev                 # http://localhost:3000
+pnpm build && pnpm start # production build on http://localhost:3000
 ```
 
-# Building For Production
+The local database is created at `data/sixty4.db` on first request; migrations run automatically.
 
-To build this application for production:
+| Script | What it does |
+| --- | --- |
+| `pnpm test` | Unit tests: game rules, solver, puzzle maker, India dates, day close |
+| `pnpm test:e2e` | Playwright on a Pixel 5 viewport against the production build (run `pnpm build` first) |
+| `pnpm budgets` | Size budgets on the production build, and a check that no server code reaches the browser |
+| `pnpm lint`, `pnpm typecheck` | ESLint and TypeScript |
+| `pnpm db:generate` | New Drizzle migration after a schema change |
+| `node scripts/make-icons.mjs` | Redraws the app icons |
 
-```bash
-pnpm build
+## Environment
+
+| Variable | Default | Use |
+| --- | --- | --- |
+| `DATABASE_URL` | `file:data/sixty4.db` | libSQL URL: a local file, or a Turso database in production |
+| `DATABASE_AUTH_TOKEN` | none | Turso auth token |
+| `LAUNCH_DATE` | `2026-10-12` | India date of puzzle #1 |
+| `PORT` | `3000` | Node server port |
+
+## How it fits together
+
+```
+src/game/      Shared by page and server: rules (applySteps, isWasted, canonical, score), strings, types
+src/server/    Server only (*.server.ts is blocked from the browser by Start's import protection)
+  solve        Lists every non-wasted way to a target (DP over tile subsets)
+  makePuzzle   Seeded puzzle for an India date; redraws until 10 to 300 ways and none with 2 tiles
+  puzzles      getPuzzle: memory, then SQLite, then a worker thread; single-flight; warms tomorrow
+  dayClose     Lazy day close: rarity bonuses for every past day still open, once
+  answers      POST /api/answer: validate, rate-limit, replay, refuse waste, save once per phone per day
+src/client/    The game screen, result panel, storage, offline queue, idle work (service worker, vitals)
+src/routes/    /, /how-it-works, /api/answer, /api/me, /api/vitals, /api/health
+src/sw/sw.js   Hand-written service worker; sw-plugin.ts injects the asset list and minifies it
 ```
 
-## Styling
+- **The server decides scores.** The page runs the same rules to show points at once; the server replays the steps from today's stored tiles and its reply replaces the page's result.
+- **No cron.** The first request of each India day closes past days and makes tomorrow's puzzle in the background. Both are idempotent.
+- **Personal data stays on the phone**: device ID, in-progress steps, today's answer, the 5-week grid. The cached HTML is the same for everyone until midnight IST.
+- **Offline**: the service worker serves the cached page, steps are saved after every step, and a sent answer is queued in IndexedDB and replayed (Background Sync where available, otherwise when back online or on the next open).
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+## Performance budget
 
-### Removing Tailwind CSS
+Checked by `pnpm budgets` and Lighthouse CI (`lighthouserc.json`) on every PR.
 
-If you prefer not to use Tailwind CSS:
+| Measure | Budget | Now |
+| --- | --- | --- |
+| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 113.5 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 5.3 KB |
+| Inline CSS | ≤ 6 KB | 4.2 KB |
+| HTML, gzip | ≤ 8 KB | 3.0 KB |
+| Service worker code, minified | ≤ 2 KB | 1.8 KB |
+| Repeat visit transfer | ≤ 5 KB | about 3.1 KB (e2e test) |
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Remove `@tailwindcss/vite` and `tailwindcss` from `package.json`
+The JS budget was raised to 130 KB because the bare TanStack Start skeleton, with no game code, is already 106 KB gzip (react-dom 64 KB, router and Start's hydration runtime the rest).
 
-## Linting & Formatting
+Local Lighthouse mobile runs (Slow 4G, 4× CPU) scored 94 to 99, with LCP 1.6 to 2.0 s, CLS 0 and about 108 KB transferred. Total Blocking Time from parsing and hydrating React on a slow CPU is the main risk to the 95 score and the 1.8 s LCP; watch the CI numbers and the field p75.
 
+## Deploying on Vercel
 
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
+`vercel.json` pins functions to `bom1` (Mumbai). Nitro detects Vercel at build time. Known gaps, to deal with later:
 
-```bash
-pnpm lint
-pnpm format
-pnpm check
-```
+- **Database.** Set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` to a Turso database. Without them the app falls back to `/tmp`, which Vercel wipes.
+- **Per-instance memory.** The puzzle cache, the single-flight map and the rate limits live in each function instance, so limits are looser across instances.
+- **Background work.** Warming tomorrow and the day close start after the response; a serverless instance may be frozen before they finish. They rerun on later requests, so nothing is lost, but `waitUntil` would be cleaner.
+- **Solver thread.** The puzzle maker runs in a `worker_threads` worker that loads its own built chunk. It falls back to solving inline if the worker can't start.
 
+The brief's target setup is one long-lived Node process (for example Fly.io in `bom` with a volume and Litestream backups). `pnpm build && pnpm start` runs exactly that.
 
-## Deploy to Vercel
+## Scaling past one instance
 
-1. Push this repo to GitHub, GitLab, or Bitbucket
-2. In Vercel, choose **Add New > Project** and import the repo
-3. Keep the detected TanStack Start framework settings
-4. Add production values from `.env.example` under **Settings > Environment Variables**
-5. Deploy
-
-Vercel runs the build script and deploys Nitro's output as Vercel Functions and
-static assets. The included `vercel.json` makes framework detection explicit.
-
-Variables prefixed with `VITE_` are included in the browser bundle. Keep secrets
-unprefixed so they remain server-only.
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+Keep the same Drizzle schema and move it to Postgres, and move the in-memory puzzle cache and rate limits to a shared store such as Redis. Not built yet.
