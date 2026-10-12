@@ -52,6 +52,8 @@ export const vitals = sqliteTable(
     name: text('name').notNull(),
     value: real('value').notNull(),
     rating: text('rating').notNull(),
+    /** The element behind the value, from the web-vitals attribution build. */
+    target: text('target'),
     date: text('date').notNull(),
   },
   (t) => [index('vitals_date').on(t.date)],

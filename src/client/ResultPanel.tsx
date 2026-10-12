@@ -93,6 +93,7 @@ export function ResultPanel(props: {
         />
         {S.buzz}
       </label>
+      <a href="/how-it-works">{S.how}</a>
     </section>
   )
 }
