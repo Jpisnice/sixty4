@@ -7,6 +7,8 @@ import type { Op, Step } from '../game/rules'
 import { Icon } from './icons'
 import { ResultPanel } from './ResultPanel'
 import { postAnswer } from './send'
+import type { Outcome, ServerResult } from './send'
+import type { InstallPrompt } from './idle'
 import { deviceId, progressKey, read, sentKey, tidy, uuid, write } from './storage'
 import type { History, Sent } from './storage'
 
@@ -72,6 +74,7 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
   const [panelOpen, setPanelOpen] = useState(false)
   const [offline, setOffline] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [install, setInstall] = useState<InstallPrompt | null>(null)
 
   const board = useMemo(() => applySteps(tiles, state.steps), [tiles, state.steps])
   const last = board.last
@@ -94,21 +97,16 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
   }, [loaded, sent, date, state.steps])
 
   // Retry an answer that has not reached the server, now and when back online.
+  // While offline it also waits in the service worker's queue.
   useEffect(() => {
     if (!sent || sent.state !== 'local') return
     let stop = false
     const trySend = async () => {
-      const out = await postAnswer({ id: sent.id, deviceId: deviceId(), date, steps: sent.steps })
+      const body = { id: sent.id, deviceId: deviceId(), date, steps: sent.steps }
+      const out = await postAnswer(body)
       if (stop) return
-      setOffline(out.kind === 'offline')
-      if (out.kind === 'offline') return
-      const next: Sent =
-        out.kind === 'saved'
-          ? { ...sent, points: out.result.points, exact: out.result.exact, waysTotal: out.result.waysTotal, state: 'saved' }
-          : { ...sent, state: 'refused' }
-      write(sentKey(date), next)
-      setSent(next)
-      if (out.kind === 'saved') record(out.result.points)
+      if (out.kind === 'offline') void import('./queue').then((q) => q.enqueue(body))
+      settle(sent.id, out)
     }
     void trySend()
     window.addEventListener('online', trySend)
@@ -117,6 +115,42 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
       window.removeEventListener('online', trySend)
     }
   }, [sent?.id, sent?.state])
+
+  // After first paint and idle: service worker, install offer.
+  useEffect(() => {
+    const go = () =>
+      import('./idle').then((m) =>
+        m.start({
+          onInstallable: setInstall,
+          onAnswer: (msg) =>
+            settle(
+              msg.id,
+              msg.status < 300 || msg.status === 409
+                ? { kind: 'saved', result: msg.data as ServerResult }
+                : { kind: 'refused', error: msg.data.error ?? '' },
+            ),
+        }),
+      )
+    const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(go) : setTimeout(go, 1))
+    if (document.readyState === 'complete') idle()
+    else window.addEventListener('load', idle, { once: true })
+  }, [])
+
+  /** Applies the server's word on an answer. The server's result replaces the page's. */
+  function settle(id: string, out: Outcome) {
+    const cur = read<Sent | null>(sentKey(date), null)
+    if (!cur || cur.id !== id || cur.state !== 'local') return
+    setOffline(out.kind === 'offline')
+    if (out.kind === 'offline') return
+    const next: Sent =
+      out.kind === 'saved'
+        ? { ...cur, ...out.result, state: 'saved' }
+        : { ...cur, state: 'refused' }
+    write(sentKey(date), next)
+    setSent(next)
+    if (out.kind === 'saved') record(out.result.points)
+    void import('./queue').then((q) => q.dequeue(id))
+  }
 
   function record(points: number) {
     const next = { ...read<History>('history', {}) }
@@ -291,6 +325,13 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
           offline={offline}
           history={history}
           buzz={buzz}
+          onInstall={
+            install &&
+            (() => {
+              void install.prompt()
+              setInstall(null)
+            })
+          }
           onBuzz={(on) => {
             setBuzz(on)
             write('buzz', on)

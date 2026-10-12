@@ -22,6 +22,7 @@ export default [
       'scripts/**',
       'src/routeTree.gen.ts',
       'e2e/.shot*',
+      'src/sw/sw.js',
       'test-results/**',
     ],
   },
