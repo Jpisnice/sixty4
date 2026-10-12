@@ -14,6 +14,8 @@ export function ResultPanel(props: {
   history: History
   buzz: boolean
   onBuzz: (on: boolean) => void
+  /** Offered only after a finished game, when the browser allows it. */
+  onInstall: (() => void) | null
   onClose: () => void
 }) {
   const { puzzle, sent, history } = props
@@ -69,6 +71,12 @@ export function ResultPanel(props: {
         {copied ? S.copied : S.share}
       </button>
       <p className="muted">{S.tomorrow}</p>
+      {props.onInstall && (
+        <button type="button" className="btn" onClick={props.onInstall}>
+          <Icon name="plus" />
+          {S.install}
+        </button>
+      )}
       <p className="label muted">{S.lastWeeks}</p>
       <div className="grid" aria-hidden="true">
         {days.map((d) => {
