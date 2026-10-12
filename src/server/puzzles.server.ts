@@ -58,9 +58,15 @@ export function forgetPuzzle(date: string) {
 
 let warmedFor = ''
 
-/** On the first request of each India day, makes tomorrow's puzzle in the background. */
+/**
+ * On the first request of each India day: closes past days and makes
+ * tomorrow's puzzle, both in the background.
+ */
 export function warmUp(today: string) {
   if (warmedFor === today) return
   warmedFor = today
+  import('./dayClose.server')
+    .then((m) => m.closePastDays(today))
+    .catch((err) => console.error('Day close failed', err))
   getPuzzle(addDays(today, 1)).catch((err) => console.error('Warming tomorrow failed', err))
 }

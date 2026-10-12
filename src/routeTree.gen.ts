@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiAnswerRouteImport } from './routes/api/answer'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiMeRouteImport } from './routes/api/me'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeRoute = ApiMeRouteImport.update({
+  id: '/api/me',
+  path: '/api/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/me': typeof ApiMeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/me': typeof ApiMeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/me': typeof ApiMeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/answer' | '/api/health'
+  fullPaths: '/' | '/api/answer' | '/api/health' | '/api/me'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/answer' | '/api/health'
-  id: '__root__' | '/' | '/api/answer' | '/api/health'
+  to: '/' | '/api/answer' | '/api/health' | '/api/me'
+  id: '__root__' | '/' | '/api/answer' | '/api/health' | '/api/me'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiAnswerRoute: typeof ApiAnswerRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiMeRoute: typeof ApiMeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me': {
+      id: '/api/me'
+      path: '/api/me'
+      fullPath: '/api/me'
+      preLoaderRoute: typeof ApiMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiAnswerRoute: ApiAnswerRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiMeRoute: ApiMeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
