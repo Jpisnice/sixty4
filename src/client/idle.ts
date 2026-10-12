@@ -1,4 +1,5 @@
 // Work that waits until the page is idle after first paint.
+import { read } from './storage'
 
 export interface InstallPrompt extends Event {
   prompt: () => Promise<void>
@@ -15,6 +16,10 @@ export function start(opts: {
   onInstallable: (e: InstallPrompt) => void
   onAnswer: (msg: SwAnswer) => void
 }) {
+  // Field Web Vitals from a 25% sample; the rest never load the library.
+  if (Math.random() < 0.25 || read<string>('vitals', '') === 'all') {
+    void import('./vitals').then((m) => m.startVitals())
+  }
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault()
     opts.onInstallable(e as InstallPrompt)

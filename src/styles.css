@@ -297,3 +297,20 @@ button {
     }
   }
 }
+.how {
+  user-select: text;
+}
+.how h2 {
+  margin: 20px 0 6px;
+  font-size: 18px;
+}
+.how ol,
+.how ul {
+  padding-left: 20px;
+}
+.how li {
+  margin: 6px 0;
+}
+a {
+  color: var(--accent);
+}

@@ -10,13 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as ApiAnswerRouteImport } from './routes/api/answer'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiMeRouteImport } from './routes/api/me'
+import { Route as ApiVitalsRouteImport } from './routes/api/vitals'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAnswerRoute = ApiAnswerRouteImport.update({
@@ -34,39 +41,71 @@ const ApiMeRoute = ApiMeRouteImport.update({
   path: '/api/me',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiVitalsRoute = ApiVitalsRouteImport.update({
+  id: '/api/vitals',
+  path: '/api/vitals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
   '/api/me': typeof ApiMeRoute
+  '/api/vitals': typeof ApiVitalsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
   '/api/me': typeof ApiMeRoute
+  '/api/vitals': typeof ApiVitalsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/api/answer': typeof ApiAnswerRoute
   '/api/health': typeof ApiHealthRoute
   '/api/me': typeof ApiMeRoute
+  '/api/vitals': typeof ApiVitalsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/answer' | '/api/health' | '/api/me'
+  fullPaths:
+    | '/'
+    | '/how-it-works'
+    | '/api/answer'
+    | '/api/health'
+    | '/api/me'
+    | '/api/vitals'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/answer' | '/api/health' | '/api/me'
-  id: '__root__' | '/' | '/api/answer' | '/api/health' | '/api/me'
+  to:
+    | '/'
+    | '/how-it-works'
+    | '/api/answer'
+    | '/api/health'
+    | '/api/me'
+    | '/api/vitals'
+  id:
+    | '__root__'
+    | '/'
+    | '/how-it-works'
+    | '/api/answer'
+    | '/api/health'
+    | '/api/me'
+    | '/api/vitals'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   ApiAnswerRoute: typeof ApiAnswerRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiMeRoute: typeof ApiMeRoute
+  ApiVitalsRoute: typeof ApiVitalsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -76,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/answer': {
@@ -99,14 +145,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/vitals': {
+      id: '/api/vitals'
+      path: '/api/vitals'
+      fullPath: '/api/vitals'
+      preLoaderRoute: typeof ApiVitalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  HowItWorksRoute: HowItWorksRoute,
   ApiAnswerRoute: ApiAnswerRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiMeRoute: ApiMeRoute,
+  ApiVitalsRoute: ApiVitalsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

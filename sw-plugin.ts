@@ -17,7 +17,7 @@ export function serviceWorker(): Plugin {
         // CSS is inlined into the HTML, so only scripts are precached.
         .filter((f) => f.startsWith('assets/') && f.endsWith('.js'))
         .sort()
-        .map((f) => `/${f}`)
+        .map((f) => f.slice('assets/'.length))
       const version = createHash('sha1').update(assets.join()).digest('hex').slice(0, 8)
       const template = readFileSync(new URL('./src/sw/sw.js', import.meta.url), 'utf8')
         .replace('__VERSION__', version)
