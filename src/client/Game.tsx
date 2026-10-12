@@ -116,10 +116,11 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
     }
   }, [sent?.id, sent?.state])
 
-  // After first paint and idle: service worker, install offer.
+  // After first paint and idle: service worker, install offer, and yesterday's
+  // result when the page doesn't have it yet.
   useEffect(() => {
-    const go = () =>
-      import('./idle').then((m) =>
+    const go = () => {
+      void import('./idle').then((m) =>
         m.start({
           onInstallable: setInstall,
           onAnswer: (msg) =>
@@ -131,6 +132,16 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
             ),
         }),
       )
+      const yesterday = shiftDate(date, -1)
+      const known = read<History>('history', {})
+      const empty = !Object.keys(known).length
+      const y = known[yesterday]
+      if (empty || (y && y.bonus === undefined)) {
+        void import('./me').then((m) =>
+          m.syncHistory(date, yesterday).then((h) => h && setHistory(h)),
+        )
+      }
+    }
     const idle = () => ('requestIdleCallback' in window ? requestIdleCallback(go) : setTimeout(go, 1))
     if (document.readyState === 'complete') idle()
     else window.addEventListener('load', idle, { once: true })
@@ -223,9 +234,11 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
         <span className="muted">{loaded && thisWeek ? S.daysThisWeek(thisWeek) : ''}</span>
       </header>
       <p className="yday muted">
-        {y?.bonus !== undefined && y.same !== undefined && y.players !== undefined
-          ? S.yesterday(y.same, y.players, y.bonus)
-          : ''}
+        {y?.bonus === undefined
+          ? ''
+          : y.points >= 40 && y.same !== undefined && y.players !== undefined
+            ? S.yesterday(y.same, y.players, y.bonus)
+            : S.yesterdayNear(y.points)}
       </p>
 
       <section className="target" aria-live="polite">
