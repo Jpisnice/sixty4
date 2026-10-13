@@ -1,6 +1,6 @@
-# Make the Number
+# Sixty4
 
-A free daily number puzzle. Every day, everyone gets the same 6 tiles and a target from 101 to 999, and builds the target by merging two tiles at a time with + − × ÷. Answers that need more tiles and more kinds of operation score higher; wasted steps such as × 1 or + 7 − 7 are refused.
+A free daily number puzzle. Every day, everyone gets the same 6 tiles and a target, and builds the target by merging two tiles at a time with + − × ÷. Answers that need more tiles and more kinds of operation score higher; wasted steps such as × 1 or + 7 − 7 are refused. Puzzles start easy and get harder over the first 30 days: puzzle #1 has a two-digit target with at least 40 ways to make it, and from puzzle #30 on targets run from 101 to 999 with at least 10 ways.
 
 Built with TanStack Start alone: its server renders the game, checks answers and stores them in SQLite. No other backend service.
 
@@ -32,13 +32,24 @@ The local database is created at `data/sixty4.db` on first request; migrations r
 | `LAUNCH_DATE` | `2026-10-12` | India date of puzzle #1 |
 | `PORT` | `3000` | Node server port |
 
+## Docs
+
+In-depth explanations live in [`docs/`](docs):
+
+| Doc | Covers |
+| --- | --- |
+| [Scoring, and how players compare](docs/scoring.md) | The board model, wasted steps, the standard form, points, the rarity bonus, the day close, puzzle difficulty |
+| [Offline-first architecture](docs/offline.md) | localStorage, the service worker, the IndexedDB answer queue, Background Sync, the life of an answer |
+| [The small bundle](docs/bundle-size.md) | The budgets and how they are measured, where the bytes go, and what keeps them small |
+| [API endpoints](docs/api.md) | Every endpoint: requests, checks in order, responses, error codes, and the tables behind them |
+
 ## How it fits together
 
 ```
 src/game/      Shared by page and server: rules (applySteps, isWasted, canonical, score), strings, types
 src/server/    Server only (*.server.ts is blocked from the browser by Start's import protection)
   solve        Lists every non-wasted way to a target (DP over tile subsets)
-  makePuzzle   Seeded puzzle for an India date; redraws until 10 to 300 ways and none with 2 tiles
+  makePuzzle   Seeded puzzle for an India date; redraws until enough ways for its place in the 30-day ramp (40 down to 10), at most 300, and none with 2 tiles
   puzzles      getPuzzle: memory, then SQLite, then a worker thread; single-flight; warms tomorrow
   dayClose     Lazy day close: rarity bonuses for every past day still open, once
   answers      POST /api/answer: validate, rate-limit, replay, refuse waste, save once per phone per day
@@ -49,7 +60,7 @@ src/sw/sw.js   Hand-written service worker; sw-plugin.ts injects the asset list 
 
 - **The server decides scores.** The page runs the same rules to show points at once; the server replays the steps from today's stored tiles and its reply replaces the page's result.
 - **No cron.** The first request of each India day closes past days and makes tomorrow's puzzle in the background. Both are idempotent.
-- **Personal data stays on the phone**: device ID, in-progress steps, today's answer, the 5-week grid. The cached HTML is the same for everyone until midnight IST.
+- **Personal data stays on the phone**: device ID, in-progress steps, today's answer, the history behind the streak grid. The cached HTML is the same for everyone until midnight IST.
 - **Offline**: the service worker serves the cached page, steps are saved after every step, and a sent answer is queued in IndexedDB and replayed (Background Sync where available, otherwise when back online or on the next open).
 
 ## Performance budget
@@ -58,12 +69,12 @@ Checked by `pnpm budgets` and Lighthouse CI (`lighthouserc.json`) on every PR.
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 113.5 KB |
-| Game code on top of the framework, gzip | ≤ 15 KB | 5.3 KB |
-| Inline CSS | ≤ 6 KB | 4.2 KB |
-| HTML, gzip | ≤ 8 KB | 3.0 KB |
+| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.3 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
+| Inline CSS | ≤ 6 KB | 5.6 KB |
+| HTML, gzip | ≤ 8 KB | 3.5 KB |
 | Service worker code, minified | ≤ 2 KB | 1.8 KB |
-| Repeat visit transfer | ≤ 5 KB | about 3.1 KB (e2e test) |
+| Repeat visit transfer | ≤ 5 KB | about 3.5 KB (e2e test) |
 
 The JS budget was raised to 130 KB because the bare TanStack Start skeleton, with no game code, is already 106 KB gzip (react-dom 64 KB, router and Start's hydration runtime the rest).
 
