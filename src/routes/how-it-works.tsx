@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { S } from '../game/strings'
 
 export const Route = createFileRoute('/how-it-works')({
-  head: () => ({ meta: [{ title: `${S.how}: Make the Number` }] }),
+  head: () => ({ meta: [{ title: `${S.how}: Sixty4` }] }),
   component: HowItWorks,
 })
 

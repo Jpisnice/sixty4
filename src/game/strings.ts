@@ -4,7 +4,7 @@ import { num } from './format'
 import type { Op, Waste } from './rules'
 
 export const S = {
-  title: (n: number) => `Make the Number #${n}`,
+  title: (n: number) => `Sixty4 #${n}`,
   daysThisWeek: (n: number) => `Days this week: ${n}`,
   yesterday: (same: number, players: number, bonus: number) =>
     `Yesterday: ${num(same)} of ${num(players)} players found your way, +${bonus}`,
@@ -44,8 +44,20 @@ export const S = {
   on: 'On',
   off: 'Off',
   close: 'Close',
-  lastWeeks: 'Last 5 weeks',
   how: 'How it works',
+  streak: (n: number) => `${n}-day streak`,
+  lastWeeks: 'Last 6 weeks',
+  practice: 'Practice',
+  practiceNote: 'Practice, not sent',
+  debug: 'Debug',
+  debugTarget: 'Target to make',
+  playTarget: 'Play this target',
+  newTiles: 'New tiles',
+  resetToday: "Reset today's puzzle",
+  realPuzzle: 'Back to the real puzzle',
+  simulate: (n: number) => `${n} days`,
+  simulateLabel: 'Simulate a streak',
+  clearHistory: 'Clear history',
   shareText: (n: number, exact: boolean, tiles: number, ops: string, points: number) =>
-    `Make the Number #${n} ${exact ? '✔' : '≈'} ${tiles} tiles · ${ops} · ${num(points)} points`,
+    `Sixty4 #${n} ${exact ? '✔' : '≈'} ${tiles} tiles · ${ops} · ${num(points)} points`,
 }

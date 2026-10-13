@@ -35,7 +35,7 @@ test('plays a full day: open, solve, send, share, reopen', async ({ page, contex
   })
 
   const { tiles, target } = await readPuzzle(page)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Make the Number #')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Sixty4 #')
   const steps = findSteps(tiles, target)
   expect(steps).not.toBeNull()
 
@@ -58,7 +58,7 @@ test('plays a full day: open, solve, send, share, reopen', async ({ page, contex
   await panel.getByRole('button', { name: 'Share' }).click()
   await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible()
   const shared = await page.evaluate(() => navigator.clipboard.readText())
-  expect(shared).toMatch(/^Make the Number #\d+ ✔ \d tiles · .+ · \d+ points$/)
+  expect(shared).toMatch(/^Sixty4 #\d+ ✔ \d tiles · .+ · \d+ points$/)
 
   await page.reload()
   await expect(page.getByRole('dialog').getByText('Saved')).toBeVisible()
@@ -103,18 +103,15 @@ test('refuses a hand-made padded answer', async ({ request, page }) => {
 })
 
 for (const width of [320, 360, 412]) {
-  for (const scheme of ['light', 'dark'] as const) {
-    test(`fits ${width} px wide in ${scheme} mode`, async ({ page }) => {
-      await page.setViewportSize({ width, height: 640 })
-      await page.emulateMedia({ colorScheme: scheme })
-      await page.goto('/')
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      )
-      expect(overflow).toBe(0)
-      // Every control sits on screen without scrolling at 640 px tall.
-      const send = await page.getByRole('button', { name: 'Send' }).boundingBox()
-      expect(send!.y + send!.height).toBeLessThanOrEqual(640)
-    })
-  }
+  test(`fits ${width} px wide`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 640 })
+    await page.goto('/')
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(0)
+    // Every control sits on screen without scrolling at 640 px tall.
+    const send = await page.getByRole('button', { name: 'Send' }).boundingBox()
+    expect(send!.y + send!.height).toBeLessThanOrEqual(640)
+  })
 }

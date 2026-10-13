@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { PointerEvent, MouseEvent } from 'react'
 import { OPS, OP_SIGN, applySteps, calc, canSend, score } from '../game/rules'
 import { S } from '../game/strings'
@@ -9,8 +9,10 @@ import { ResultPanel } from './ResultPanel'
 import { postAnswer } from './send'
 import type { Outcome, ServerResult } from './send'
 import type { InstallPrompt } from './idle'
-import { deviceId, progressKey, read, sentKey, tidy, uuid, write } from './storage'
-import type { History, Sent } from './storage'
+import { deviceId, practiceDay, progressKey, read, sentKey, tidy, uuid, write } from './storage'
+import type { History, Practice, Sent } from './storage'
+
+const Debug = lazy(() => import('./Debug'))
 
 interface State {
   steps: Array<Step>
@@ -65,9 +67,21 @@ const isoDay = (date: string) => new Date(`${date}T00:00:00Z`)
 const shiftDate = (date: string, days: number) =>
   new Date(isoDay(date).getTime() + days * 864e5).toISOString().slice(0, 10)
 
-export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
+export function Game(props: {
+  puzzle: TodayPuzzle
+  /** Today's real puzzle, for the debug menu. */
+  real: TodayPuzzle
+  /** A debug puzzle: scored on the phone, never sent. */
+  practice: boolean
+  onPractice: (p: Practice | null) => void
+}) {
+  const { puzzle, practice } = props
   const { tiles, target, date } = puzzle
+  // Where this game's steps and answer are kept.
+  const day = practice ? practiceDay(date) : date
   const [state, dispatch] = useReducer(reducer, EMPTY)
+  const [debugOpen, setDebugOpen] = useState(false)
+  const lastTap = useRef(0)
   const [sent, setSent] = useState<Sent | null>(null)
   const [history, setHistory] = useState<History>({})
   const [buzz, setBuzz] = useState(true)
@@ -82,19 +96,19 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
   // Personal data is read only after hydration, into space kept for it.
   useEffect(() => {
     tidy(date)
-    const saved = read<Sent | null>(sentKey(date), null)
-    dispatch({ t: 'load', steps: saved?.steps ?? read<Array<Step>>(progressKey(date), []) })
+    const saved = read<Sent | null>(sentKey(day), null)
+    dispatch({ t: 'load', steps: saved?.steps ?? read<Array<Step>>(progressKey(day), []) })
     setSent(saved)
     setPanelOpen(!!saved)
     setHistory(read<History>('history', {}))
     setBuzz(read('buzz', true))
     setLoaded(true)
-  }, [date])
+  }, [day])
 
   // Never lose work: save after every step.
   useEffect(() => {
-    if (loaded && !sent) write(progressKey(date), state.steps)
-  }, [loaded, sent, date, state.steps])
+    if (loaded && !sent) write(progressKey(day), state.steps)
+  }, [loaded, sent, day, state.steps])
 
   // Retry an answer that has not reached the server, now and when back online.
   // While offline it also waits in the service worker's queue.
@@ -149,7 +163,7 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
 
   /** Applies the server's word on an answer. The server's result replaces the page's. */
   function settle(id: string, out: Outcome) {
-    const cur = read<Sent | null>(sentKey(date), null)
+    const cur = read<Sent | null>(sentKey(day), null)
     if (!cur || cur.id !== id || cur.state !== 'local') return
     setOffline(out.kind === 'offline')
     if (out.kind === 'offline') return
@@ -157,7 +171,7 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
       out.kind === 'saved'
         ? { ...cur, ...out.result, state: 'saved' }
         : { ...cur, state: 'refused' }
-    write(sentKey(date), next)
+    write(sentKey(day), next)
     setSent(next)
     if (out.kind === 'saved') record(out.result.points)
     void import('./queue').then((q) => q.dequeue(id))
@@ -188,12 +202,13 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
       distance: sc.distance,
       ops,
       waysTotal: puzzle.waysTotal,
-      state: 'local',
+      // Practice is never sent, so it is final at once.
+      state: practice ? 'saved' : 'local',
     }
-    write(sentKey(date), next)
+    write(sentKey(day), next)
     setSent(next)
     setPanelOpen(true)
-    record(sc.points)
+    if (!practice) record(sc.points)
   }
 
   function tapTile(slot: number) {
@@ -227,18 +242,36 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
   const thisWeek = daysThisWeek(history, date)
   const y = history[shiftDate(date, -1)]
 
+  /** A double tap on the title opens the hidden debug menu. */
+  function tapTitle(e: PointerEvent) {
+    if (e.timeStamp - lastTap.current < 350) {
+      lastTap.current = 0
+      setPanelOpen(false)
+      setDebugOpen(true)
+    } else lastTap.current = e.timeStamp
+  }
+
   return (
     <main className="game" data-ready={loaded || undefined}>
       <header className="head">
-        <h1>{S.title(puzzle.number)}</h1>
-        <span className="muted">{loaded && thisWeek ? S.daysThisWeek(thisWeek) : ''}</span>
+        <h1 onPointerUp={tapTitle}>{S.title(puzzle.number)}</h1>
+        <div className="head-end">
+          <span className="muted">{loaded && thisWeek ? S.daysThisWeek(thisWeek) : ''}</span>
+          <a className="info" href="/how-it-works" aria-label={S.how}>
+            <Icon name="info" />
+          </a>
+        </div>
       </header>
       <p className="yday muted">
-        {y?.bonus === undefined
-          ? ''
-          : y.points >= 40 && y.same !== undefined && y.players !== undefined
-            ? S.yesterday(y.same, y.players, y.bonus)
-            : S.yesterdayNear(y.points)}
+        {practice ? (
+          <span className="label practice">{S.practice}</span>
+        ) : y?.bonus === undefined ? (
+          ''
+        ) : y.points >= 40 && y.same !== undefined && y.players !== undefined ? (
+          S.yesterday(y.same, y.players, y.bonus)
+        ) : (
+          S.yesterdayNear(y.points)
+        )}
       </p>
 
       <section className="target" aria-live="polite">
@@ -335,6 +368,7 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
         <ResultPanel
           puzzle={puzzle}
           sent={sent}
+          practice={practice}
           offline={offline}
           history={history}
           buzz={buzz}
@@ -351,6 +385,18 @@ export function Game({ puzzle }: { puzzle: TodayPuzzle }) {
           }}
           onClose={() => setPanelOpen(false)}
         />
+      )}
+
+      {debugOpen && (
+        <Suspense fallback={null}>
+          <Debug
+            real={props.real}
+            practice={practice}
+            onPractice={props.onPractice}
+            onHistory={setHistory}
+            onClose={() => setDebugOpen(false)}
+          />
+        </Suspense>
       )}
     </main>
   )

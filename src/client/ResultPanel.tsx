@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { S } from '../game/strings'
 import type { TodayPuzzle } from '../game/puzzle'
+import { streak } from './history'
 import { Icon } from './icons'
 import type { History, Sent } from './storage'
-
-const shift = (date: string, days: number) =>
-  new Date(Date.parse(`${date}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10)
+import { StreakGrid } from './StreakGrid'
 
 export function ResultPanel(props: {
   puzzle: TodayPuzzle
   sent: Sent
+  /** A debug puzzle: never sent, so it has no server status. */
+  practice: boolean
   offline: boolean
   history: History
   buzz: boolean
@@ -33,25 +34,25 @@ export function ResultPanel(props: {
     if ((await shareText(text)) === 'copied') setCopied(true)
   }
 
-  const status =
-    sent.state === 'saved' ? (
-      <span className="good">
-        <Icon name="check" />
-        {S.saved}
-      </span>
-    ) : sent.state === 'refused' ? (
-      <span>{S.refused}</span>
-    ) : props.offline ? (
-      <span>
-        <Icon name="cloud" />
-        {S.willSend}
-      </span>
-    ) : (
-      <span className="muted">{S.sending}</span>
-    )
+  const status = props.practice ? (
+    <span className="muted">{S.practiceNote}</span>
+  ) : sent.state === 'saved' ? (
+    <span className="good">
+      <Icon name="check" />
+      {S.saved}
+    </span>
+  ) : sent.state === 'refused' ? (
+    <span>{S.refused}</span>
+  ) : props.offline ? (
+    <span>
+      <Icon name="cloud" />
+      {S.willSend}
+    </span>
+  ) : (
+    <span className="muted">{S.sending}</span>
+  )
 
-  // 5 weeks of days, oldest first, ending today.
-  const days = Array.from({ length: 35 }, (_, i) => shift(puzzle.date, i - 34))
+  const run = streak(history, puzzle.date)
 
   return (
     <section className="panel" role="dialog" aria-modal="false" aria-labelledby="result-title">
@@ -62,7 +63,7 @@ export function ResultPanel(props: {
         </button>
       </div>
       <p className="muted">{lines.join(', ')}</p>
-      {sent.exact && <p>{S.found(sent.waysTotal)}</p>}
+      {sent.exact && sent.waysTotal > 0 && <p>{S.found(sent.waysTotal)}</p>}
       <p className="status" role="status">
         {status}
       </p>
@@ -77,13 +78,11 @@ export function ResultPanel(props: {
           {S.install}
         </button>
       )}
-      <p className="label muted">{S.lastWeeks}</p>
-      <div className="grid" aria-hidden="true">
-        {days.map((d) => {
-          const h = history[d]
-          const level = !h ? '' : h.points >= 80 ? 'l3' : h.points >= 40 ? 'l2' : 'l1'
-          return <i key={d} className={level} title={h ? `${d}: ${h.points}` : d} />
-        })}
+      <div className="streak-row">
+        <p className={run >= 2 ? 'label streak' : 'label muted'}>
+          {run >= 2 ? S.streak(run) : S.lastWeeks}
+        </p>
+        <StreakGrid history={history} date={puzzle.date} weeks={6} />
       </div>
       <label className="switch">
         <input
@@ -93,7 +92,7 @@ export function ResultPanel(props: {
         />
         {S.buzz}
       </label>
-      <a href="/how-it-works">{S.how}</a>
     </section>
   )
 }
+
