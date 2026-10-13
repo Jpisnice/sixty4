@@ -75,6 +75,8 @@ export function Game(props: {
   /** A debug puzzle: scored on the phone, never sent. */
   practice: boolean
   onPractice: (p: Practice | null) => void
+  /** Today was reset from the debug menu: start the real puzzle afresh. */
+  onReset: () => void
 }) {
   const { puzzle, practice } = props
   const { tiles, target, date } = puzzle
@@ -85,7 +87,6 @@ export function Game(props: {
   const lastTap = useRef(0)
   const [sent, setSent] = useState<Sent | null>(null)
   const [history, setHistory] = useState<History>({})
-  const [buzz, setBuzz] = useState(true)
   const [panelOpen, setPanelOpen] = useState(false)
   const [offline, setOffline] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -103,7 +104,6 @@ export function Game(props: {
     setSent(saved)
     setPanelOpen(!!saved)
     setHistory(read<History>('history', {}))
-    setBuzz(read('buzz', true))
     setLoaded(true)
   }, [day])
 
@@ -223,10 +223,6 @@ export function Game(props: {
 
   function tapTile(slot: number) {
     if (sent) return
-    if (buzz && state.sel >= 0 && state.op && state.sel !== slot) {
-      const x = board.slots[state.sel].v
-      if (!board.used.has(slot) && calc(x, state.op, board.slots[slot].v)) 'vibrate' in navigator && navigator.vibrate(8)
-    }
     dispatch({ t: 'tile', slot, tiles })
   }
 
@@ -383,7 +379,6 @@ export function Game(props: {
           practice={practice}
           offline={offline}
           history={history}
-          buzz={buzz}
           onInstall={
             install &&
             (() => {
@@ -391,10 +386,6 @@ export function Game(props: {
               setInstall(null)
             })
           }
-          onBuzz={(on) => {
-            setBuzz(on)
-            write('buzz', on)
-          }}
           onClose={() => setPanelOpen(false)}
         />
       )}
@@ -405,6 +396,7 @@ export function Game(props: {
             real={props.real}
             practice={practice}
             onPractice={props.onPractice}
+            onReset={props.onReset}
             onHistory={setHistory}
             onClose={() => setDebugOpen(false)}
           />

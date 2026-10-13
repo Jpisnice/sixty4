@@ -26,9 +26,9 @@ From `pnpm budgets` on the current build, and the repeat-visit e2e test:
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB | 114.4 KB |
-| Game code on top of the framework, gzip | ≤ 15 KB | 6.1 KB |
-| Inline CSS, raw | ≤ 6 KB | 5.6 KB |
+| First-load JS, gzip | ≤ 130 KB | 114.3 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
+| Inline CSS, raw | ≤ 6 KB | 5.5 KB |
 | HTML, gzip | ≤ 8 KB (soft target 4.5 KB) | 3.5 KB |
 | Service worker code, minified | ≤ 2 KB | 1.9 KB |
 | Repeat visit, bytes on the wire | ≤ 5 KB | about 3.5 KB |
@@ -67,9 +67,9 @@ Every JavaScript chunk in the current build, gzip:
 | Chunk | Size | When it loads |
 | --- | --- | --- |
 | `index-*.js`: React, react-dom, router, Start runtime | 108.3 KB | First load |
-| `routes-*.js`: the game screen, rules, strings, storage, result panel, streak grid | 6.1 KB | First load |
+| `routes-*.js`: the game screen, rules, strings, storage, result panel, streak grid | 6.0 KB | First load |
 | `vitals-*.js`: web-vitals with attribution | 5.2 KB | Idle time, on a 25% sample of visits |
-| `Debug-*.js`: the hidden debug menu | 1.8 KB | Only after a double tap on the title |
+| `Debug-*.js`: the hidden debug menu | 1.3 KB | Only after a double tap on the title |
 | `how-it-works-*.js` | 0.8 KB | Only on that page |
 | `idle-*.js`: service worker registration, install prompt | 355 B | Idle time |
 | `queue-*.js`: IndexedDB offline queue | 346 B | Only when an answer can't be sent |
@@ -163,7 +163,7 @@ Size isn't the only thing Lighthouse measures. These choices protect the speed a
 ## Known risks
 
 - **Hydration on slow phones.** The framework floor is about 108 KB, and parsing and hydrating React on a slow CPU is what most threatens the Lighthouse score and the 1.8 s LCP target. Local mobile runs scored 94 to 99, with LCP 1.6 to 2.0 s. Watch the CI numbers and the field p75 from `/api/vitals`.
-- **Inline CSS is nearly full,** at 5.6 of 6 KB. The next sizeable styling change will need old rules trimmed first, or a conscious decision to raise the budget.
+- **Inline CSS is nearly full,** at 5.5 of 6 KB. The next sizeable styling change will need old rules trimmed first, or a conscious decision to raise the budget.
 - **Shared chunks can move.** When two routes start sharing a module, the bundler may move it between the entry chunk and a shared chunk. That changes the "game code on top" figure even though the total hardly moves. Judge a change by first-load JS first.
 
 ## Keeping it small: a checklist

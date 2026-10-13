@@ -43,3 +43,5 @@ const DAY = 24 * 60 * 60 * 1000
 export const perDevice = new TokenBucket(30, DAY)
 /** A looser limit per IP, since many phones can share one. */
 export const perIp = new TokenBucket(600, DAY)
+/** 30 debug-menu resets a day per phone, kept apart so testing doesn't use up answers. */
+export const perDeviceReset = new TokenBucket(30, DAY)

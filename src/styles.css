@@ -268,17 +268,6 @@ button {
   font-size: 13px;
   font-weight: 600;
 }
-.switch {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  min-height: 40px;
-}
-.switch input {
-  width: 22px;
-  height: 22px;
-  accent-color: var(--accent);
-}
 @media (prefers-reduced-motion: no-preference) {
   .tile,
   .op,

@@ -8,12 +8,13 @@ Every example below was run against the production build. The bodies are real re
 
 1. [Conventions](#conventions)
 2. [`POST /api/answer`](#post-apianswer): send today's answer
-3. [`GET /api/me`](#get-apime): this phone's recent results
-4. [`POST /api/vitals`](#post-apivitals): one field Web Vitals measurement
-5. [`GET /api/health`](#get-apihealth): is the server up
-6. [The `getToday` server function](#the-gettoday-server-function): today's puzzle, for the page
-7. [Error codes at a glance](#error-codes-at-a-glance)
-8. [The tables behind the API](#the-tables-behind-the-api)
+3. [`DELETE /api/answer`](#delete-apianswer): forget today's answer, to replay it
+4. [`GET /api/me`](#get-apime): this phone's recent results
+5. [`POST /api/vitals`](#post-apivitals): one field Web Vitals measurement
+6. [`GET /api/health`](#get-apihealth): is the server up
+7. [The `getToday` server function](#the-gettoday-server-function): today's puzzle, for the page
+8. [Error codes at a glance](#error-codes-at-a-glance)
+9. [The tables behind the API](#the-tables-behind-the-api)
 
 ## Conventions
 
@@ -26,7 +27,7 @@ Every example below was run against the production build. The bodies are real re
 
 ## `POST /api/answer`
 
-Sends today's answer for scoring and saving. The server replays the steps over **its own stored tiles** and scores them with the shared rules (`src/game/rules.ts`). It never trusts points from the page. Each phone gets **one answer per day**, and sending is **idempotent** by answer ID.
+Sends today's answer for scoring and saving. The server replays the steps over **its own stored tiles** and scores them with the shared rules (`src/game/rules.ts`). It never trusts points from the page. Each phone gets **one answer per day**, and sending is **idempotent** by answer ID. The only way to send a second answer the same day is to [reset](#delete-apianswer) first.
 
 Handler: `handleAnswer` in `src/server/answers.server.ts`.
 
@@ -154,6 +155,60 @@ curl -X POST localhost:3000/api/answer -H 'content-type: application/json' -d '{
 Treating 429 as "try later" rather than "refused" is deliberate: the limit refills over the day, so the answer can still go through.
 
 **Known edge case.** The page treats *every* 409 as saved and reads `points` from the body. For the near-impossible `409 {"error":"id"}`, the body has no points. This isn't handled specially today.
+
+## `DELETE /api/answer`
+
+Forgets **this phone's answer for today**, so it can be played and sent again for real. The hidden debug menu's "Reset today's puzzle" uses it, so someone who has played for many days can replay the day's puzzle through the whole real flow.
+
+Handler: `handleReset` in `src/server/answers.server.ts`.
+
+### Request
+
+```http
+DELETE /api/answer?deviceId=11111111-1111-4111-8111-111111111111
+```
+
+A missing or malformed `deviceId` gets **400 `bad`**. There's no body.
+
+### What the server does
+
+1. **Rate limits.** One token from the phone's **reset** bucket (30 a day, separate from the answer bucket, so testing doesn't use up answers), then one from the shared IP bucket (600 a day). An empty bucket gets **429 `limit`**.
+2. **Delete** this device's row in `answers` for **today** (India time). Past days are never touched, closed or not. The `devices` row stays.
+3. Reply with how many answers were deleted.
+
+### Responses
+
+| Status | Body | Meaning |
+| --- | --- | --- |
+| 200 | `{"deleted":1}` | Today's answer is gone. The next `POST` is saved as a new answer (200, not 409). |
+| 200 | `{"deleted":0}` | There was no answer for today. Nothing changed. |
+| 400 | `{"error":"bad"}` | Malformed `deviceId` |
+| 429 | `{"error":"limit"}` | Too many resets from this phone, or requests from this IP, today |
+
+```bash
+curl -X POST localhost:3000/api/answer ...                      # 200 {"points":60,...}
+curl -X POST localhost:3000/api/answer ... (a new id)           # 409 (the first answer stands)
+curl -X DELETE 'localhost:3000/api/answer?deviceId=1111...1111'  # 200 {"deleted":1}
+curl -X DELETE 'localhost:3000/api/answer?deviceId=1111...1111'  # 200 {"deleted":0}
+curl -X POST localhost:3000/api/answer ... (the new id)         # 200 {"points":60,...}
+```
+
+### Fairness
+
+There's no secret or sign-in: any phone can reset its **own** answer for today, as often as the rate limit allows. This was a deliberate choice, to keep the debug menu usable on the live site. The trade-offs:
+
+- A player who finds the hidden menu can retry today's puzzle, for example to raise their points or aim for a rarer way.
+- Until the day closes, deleting and resending changes the counts that rarity shares come from ([scoring.md](scoring.md#the-rarity-bonus)). Once the day has closed, bonuses are fixed, and past answers can't be deleted.
+- A phone can only ever delete its own answer: the delete is keyed by device ID, and device IDs are random UUIDs.
+
+### How the page uses it
+
+`resetToday()` in `src/client/Debug.tsx`:
+
+1. Sends the `DELETE`. If it fails (offline, or not 200), the menu says "Couldn't reach the server. Try again when online." and **nothing changes**, on the phone or the server.
+2. On success, it drops the old answer from the offline queue if it is still waiting there, so a late Background Sync can't resend it.
+3. It removes today's steps, today's answer and today's history entry from `localStorage`.
+4. It remounts the game as the real puzzle, with an empty board.
 
 ## `GET /api/me`
 
@@ -296,6 +351,7 @@ export const getToday = createServerFn({ method: 'GET' }).handler(() => loadToda
 | --- | --- | --- | --- | --- |
 | `bad` | 400 | all | Malformed request | refused |
 | `limit` | 429 | answer | Rate limit hit | offline, retried later |
+| `limit` | 429 | reset (`DELETE /api/answer`) | Reset limit hit | "Couldn't reach the server" in the debug menu |
 | `day` | 422 | answer | Not today's date (India time) | refused |
 | `step` | 422 | answer | An illegal step | refused |
 | `wasted` | 422 | answer | A wasted step | refused |
@@ -311,7 +367,7 @@ Defined in `src/server/db/schema.ts` with Drizzle. Migrations live in `drizzle/`
 | Table | Columns | Notes |
 | --- | --- | --- |
 | `puzzles` | `date` (key), `number` (unique), `tiles` (JSON), `target`, `solutions` (JSON), `ways_total`, `closed_at` | One row per India date. Made once, never regenerated. `closed_at` is set by the day close. |
-| `answers` | `id` (key, the phone's UUID), `device_id`, `date`, `steps` (JSON), `canonical`, `exact`, `points`, `rarity_bonus`, `created_at` | **Unique `(device_id, date)`**: one answer per phone per day. Index on `(date, canonical)` for rarity counts. `rarity_bonus` stays empty until the day closes. |
+| `answers` | `id` (key, the phone's UUID), `device_id`, `date`, `steps` (JSON), `canonical`, `exact`, `points`, `rarity_bonus`, `created_at` | **Unique `(device_id, date)`**: one answer per phone per day (a reset deletes it). Index on `(date, canonical)` for rarity counts. `rarity_bonus` stays empty until the day closes. |
 | `devices` | `device_id` (key), `reminder_slot`, `push_subscription`, `created_at` | A row per phone that has answered. The reminder and push columns are reserved for a future feature. |
 | `vitals` | `id`, `name`, `value`, `rating`, `target`, `date` | Field measurements from `/api/vitals`. Index on `date`. |
 

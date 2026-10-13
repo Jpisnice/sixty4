@@ -1,6 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { handleAnswer } from '../../server/answers.server'
+import { handleAnswer, handleReset } from '../../server/answers.server'
 
 export const Route = createFileRoute('/api/answer')({
-  server: { handlers: { POST: ({ request }) => handleAnswer(request) } },
+  server: {
+    handlers: {
+      POST: ({ request }) => handleAnswer(request),
+      DELETE: ({ request }) => handleReset(request),
+    },
+  },
 })

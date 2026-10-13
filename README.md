@@ -52,7 +52,7 @@ src/server/    Server only (*.server.ts is blocked from the browser by Start's i
   makePuzzle   Seeded puzzle for an India date; redraws until enough ways for its place in the 30-day ramp (40 down to 10), at most 300, and none with 2 tiles
   puzzles      getPuzzle: memory, then SQLite, then a worker thread; single-flight; warms tomorrow
   dayClose     Lazy day close: rarity bonuses for every past day still open, once
-  answers      POST /api/answer: validate, rate-limit, replay, refuse waste, save once per phone per day
+  answers      POST /api/answer: validate, rate-limit, replay, refuse waste, save once per phone per day (DELETE resets it, from the debug menu)
 src/client/    The game screen, result panel, storage, offline queue, idle work (service worker, vitals)
 src/routes/    /, /how-it-works, /api/answer, /api/me, /api/vitals, /api/health
 src/sw/sw.js   Hand-written service worker; sw-plugin.ts injects the asset list and minifies it
@@ -69,9 +69,9 @@ Checked by `pnpm budgets` and Lighthouse CI (`lighthouserc.json`) on every PR.
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.4 KB |
-| Game code on top of the framework, gzip | ≤ 15 KB | 6.1 KB |
-| Inline CSS | ≤ 6 KB | 5.6 KB |
+| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.3 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
+| Inline CSS | ≤ 6 KB | 5.5 KB |
 | HTML, gzip | ≤ 8 KB | 3.5 KB |
 | Service worker code, minified | ≤ 2 KB | 1.9 KB |
 | Repeat visit transfer | ≤ 5 KB | about 3.5 KB (e2e test) |

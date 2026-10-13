@@ -13,6 +13,8 @@ export const Route = createFileRoute('/')({
 function Home() {
   const puzzle = Route.useLoaderData()
   const [practice, setPractice] = useState<Practice | null>(null)
+  // Bumped by a debug reset, so the real game remounts and reads its now-empty storage.
+  const [resets, setResets] = useState(0)
 
   // A debug puzzle from the menu, read after hydration. It lasts only for its day.
   useEffect(() => {
@@ -31,11 +33,15 @@ function Home() {
 
   return (
     <Game
-      key={practice?.id ?? puzzle.date}
+      key={practice?.id ?? `${puzzle.date}:${resets}`}
       puzzle={practice ? { ...puzzle, ...practice } : puzzle}
       real={puzzle}
       practice={!!practice}
       onPractice={onPractice}
+      onReset={() => {
+        onPractice(null)
+        setResets((n) => n + 1)
+      }}
     />
   )
 }

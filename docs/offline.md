@@ -66,7 +66,6 @@ All keys are prefixed `mtn:`. Every read and write goes through `read`, `write` 
 | `practice` | The current practice puzzle (tiles, target) | From the debug menu | "Back to the real puzzle"; ignored on other days |
 | `history` | Points per date, plus yesterday's bonus details | On Send, when the server confirms, and after `/api/me` | Entries older than 40 days are dropped |
 | `me` | The date `/api/me` was last fetched, so it is fetched at most once a day | After a successful fetch | "Clear history" in the debug menu |
-| `buzz` | The "Buzz on tap" setting | When toggled | Never |
 | `vitals` | `"all"` forces field vitals on for this phone (used by the e2e test) | By hand or by tests | Never |
 
 `tidy(today)` runs when the game opens. It removes every `steps:` and `sent:` key, practice ones included, for dates before today.
@@ -156,6 +155,8 @@ dequeue(id)   // remove an answer once the server has answered it
 `enqueue` also calls `registration.sync.register('answers')` when the browser supports Background Sync. That asks the browser to wake the service worker with a `sync` event once it is online, **even if the page has been closed**. Both functions swallow errors: a failure only means a later retry path is needed.
 
 The queue module is loaded only when it is needed (`import('./queue')`), so it costs nothing on a normal online day.
+
+The debug menu's "Reset today's puzzle" also calls `dequeue`, after the server has confirmed the reset. Otherwise an old answer still waiting in the queue could be resent by a late Background Sync and become today's answer again.
 
 ### The worker side (`flush()` in `sw.js`)
 

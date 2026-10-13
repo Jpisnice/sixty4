@@ -44,7 +44,7 @@ test('starts vitals once, even when practice mode remounts the game', async ({ p
   // Into practice and back: two remounts, each running the idle work again.
   const menu = page.getByRole('dialog', { name: 'Debug' })
   await page.getByRole('heading', { level: 1 }).dblclick()
-  await menu.getByRole('button', { name: "Reset today's puzzle" }).click()
+  await menu.getByRole('button', { name: 'New tiles' }).click()
   await expect(page.locator('.yday')).toHaveText('Practice')
   await idle()
   await page.getByRole('heading', { level: 1 }).dblclick()

@@ -6,7 +6,7 @@ import { answers, devices } from './db/schema'
 import { clientIp, json } from './http'
 import { todayIST } from './ist'
 import { getPuzzle, warmUp } from './puzzles.server'
-import { perDevice, perIp } from './rateLimit.server'
+import { perDevice, perDeviceReset, perIp } from './rateLimit.server'
 
 interface AnswerBody {
   id: string
@@ -94,4 +94,22 @@ export async function handleAnswer(request: Request): Promise<Response> {
   // The id was already used by another phone.
   if (!after) return json(409, { error: 'id' })
   return reply(after)
+}
+
+/**
+ * DELETE /api/answer?deviceId=: forgets this phone's answer for today, so the debug
+ * menu can replay the day for real. Only today: past days are never touched.
+ */
+export async function handleReset(request: Request): Promise<Response> {
+  const deviceId = new URL(request.url).searchParams.get('deviceId')?.toLowerCase() ?? ''
+  if (!UUID.test(deviceId)) return json(400, { error: 'bad' })
+  if (!perDeviceReset.take(deviceId) || !perIp.take(clientIp(request))) {
+    return json(429, { error: 'limit' })
+  }
+  const db = await getDb()
+  const gone = await db
+    .delete(answers)
+    .where(and(eq(answers.deviceId, deviceId), eq(answers.date, todayIST())))
+    .returning({ id: answers.id })
+  return json(200, { deleted: gone.length })
 }

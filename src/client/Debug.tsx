@@ -1,16 +1,16 @@
 // The hidden debug menu, opened by a double tap on the title. Loaded only then.
-// Everything here stays on the phone: practice answers are never sent.
+// Practice puzzles stay on the phone and are never sent. "Reset today's puzzle" is the
+// one thing that reaches the server: it asks it to forget this phone's answer for today.
 import { useState } from 'react'
 import { S } from '../game/strings'
 import type { TodayPuzzle } from '../game/puzzle'
-import { read, remove, uuid, write } from './storage'
-import type { History, Practice } from './storage'
+import { shift } from './history'
+import { deviceId, progressKey, read, remove, sentKey, uuid, write } from './storage'
+import type { History, Practice, Sent } from './storage'
 
 const BIG = [25, 50, 75, 100]
 const int = (n: number) => Math.floor(Math.random() * n)
 const pick = <T,>(list: ReadonlyArray<T>) => list[int(list.length)]
-const shift = (date: string, days: number) =>
-  new Date(Date.parse(`${date}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10)
 
 /** Random tiles with the same mix as the daily puzzle: 1 or 2 big, the rest 1 to 10. */
 function dealTiles() {
@@ -46,11 +46,15 @@ export default function Debug(props: {
   real: TodayPuzzle
   practice: boolean
   onPractice: (p: Practice | null) => void
+  /** Today's answer is gone, here and on the server: start the real puzzle afresh. */
+  onReset: () => void
   onHistory: (h: History) => void
   onClose: () => void
 }) {
   const { real } = props
   const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const typed = Number(text)
   const valid = Number.isInteger(typed) && typed >= 1 && typed <= 999
 
@@ -61,6 +65,31 @@ export default function Debug(props: {
     const next = streakHistory(real.date, days)
     write('history', next)
     props.onHistory(next)
+  }
+
+  /** Replays today for real: the server forgets this phone's answer, then so does the phone. */
+  async function resetToday() {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/answer?deviceId=${deviceId()}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error(String(res.status))
+    } catch {
+      // Nothing has changed yet, here or on the server.
+      setBusy(false)
+      setError(S.resetFailed)
+      return
+    }
+    const date = real.date
+    // An answer still waiting offline must not reach the server after the reset.
+    const sent = read<Sent | null>(sentKey(date), null)
+    if (sent) await import('./queue').then((q) => q.dequeue(sent.id))
+    remove(progressKey(date))
+    remove(sentKey(date))
+    const history = { ...read<History>('history', {}) }
+    delete history[date]
+    write('history', history)
+    props.onReset()
   }
 
   function clearHistory() {
@@ -109,13 +138,14 @@ export default function Debug(props: {
       >
         {S.newTiles}
       </button>
-      <button
-        type="button"
-        className="btn"
-        onClick={() => start(real.tiles, real.target, real.waysTotal)}
-      >
+      <button type="button" className="btn" disabled={busy} onClick={() => void resetToday()}>
         {S.resetToday}
       </button>
+      {error && (
+        <p className="msg" role="alert">
+          {error}
+        </p>
+      )}
       {props.practice && (
         <button type="button" className="btn" onClick={() => props.onPractice(null)}>
           {S.realPuzzle}

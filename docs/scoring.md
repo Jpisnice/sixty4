@@ -181,7 +181,7 @@ sequenceDiagram
 - The page computes the score at once, so the result panel opens with no waiting, even offline.
 - The server never trusts the page's points. It gets only the **step list**, replays it over **its own stored tiles** for today, and scores it again.
 - The server's reply replaces the page's result (`settle()` in `src/client/Game.tsx`). The two only differ if the page was tampered with.
-- Practice puzzles from the debug menu are scored on the page only and never sent.
+- Practice puzzles from the debug menu ("Play this target", "New tiles") are scored on the page only and never sent. "Reset today's puzzle" is different: it deletes this phone's answer on the server, so the replayed answer is sent and scored for real.
 
 See [api.md](api.md#post-apianswer) for every check the server makes, and in what order.
 
@@ -212,6 +212,7 @@ Things to know:
 - **Near and wasted answers get 0.** Only exact answers take part, as numerator and denominator.
 - **You need other solvers to earn a bonus.** If you are the only exact solver, `p = 1` and the bonus is 0. If two players each find a different way, each has `p = 1/2` and gets +8.
 - The scale is logarithmic: every tenfold rarer way earns 25 more, up to 50. The How it works page shows the same rule as "+25 if 1 in 10 did, +50 if 1 in 100 did".
+- **A reset can shift the shares until the day closes.** The debug menu's "Reset today's puzzle" deletes a phone's answer for today ([api.md](api.md#delete-apianswer)), and the phone can then send a different one. The counts used for `p` are only taken at the day close, so they reflect whatever answers are stored then.
 - The bonus is stored apart from the points (`answers.rarity_bonus` and `answers.points`) and shown apart. Points are known at once; the bonus only once the day is over.
 
 ## The day close

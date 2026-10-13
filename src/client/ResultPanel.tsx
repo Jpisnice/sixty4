@@ -13,8 +13,6 @@ export function ResultPanel(props: {
   practice: boolean
   offline: boolean
   history: History
-  buzz: boolean
-  onBuzz: (on: boolean) => void
   /** Offered only after a finished game, when the browser allows it. */
   onInstall: (() => void) | null
   onClose: () => void
@@ -84,14 +82,6 @@ export function ResultPanel(props: {
         </p>
         <StreakGrid history={history} date={puzzle.date} weeks={6} />
       </div>
-      <label className="switch">
-        <input
-          type="checkbox"
-          checked={props.buzz}
-          onChange={(e) => props.onBuzz(e.target.checked)}
-        />
-        {S.buzz}
-      </label>
     </section>
   )
 }
