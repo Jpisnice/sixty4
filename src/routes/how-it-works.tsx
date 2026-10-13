@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { S } from '../game/strings'
 
@@ -7,6 +8,14 @@ export const Route = createFileRoute('/how-it-works')({
 })
 
 function HowItWorks() {
+  // However the player got here, the game stops pointing them to this page. Written
+  // directly: importing storage.ts here would split it into an extra first-load chunk.
+  useEffect(() => {
+    try {
+      localStorage.setItem('mtn:how', 'true')
+    } catch {}
+  }, [])
+
   return (
     <main className="game how">
       <header className="head">

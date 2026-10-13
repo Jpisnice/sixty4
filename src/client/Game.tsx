@@ -90,6 +90,8 @@ export function Game(props: {
   const [panelOpen, setPanelOpen] = useState(false)
   const [offline, setOffline] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  // Whether this phone has seen How it works (the page sets it). Until then a new player is pointed to it.
+  const [knowsHow, setKnowsHow] = useState(true)
   const [stale, setStale] = useState(false)
   const [install, setInstall] = useState<InstallPrompt | null>(null)
 
@@ -104,6 +106,7 @@ export function Game(props: {
     setSent(saved)
     setPanelOpen(!!saved)
     setHistory(read<History>('history', {}))
+    setKnowsHow(read<boolean>('how', false))
     setLoaded(true)
   }, [day])
 
@@ -246,6 +249,7 @@ export function Game(props: {
       : ''
 
   const thisWeek = daysThisWeek(history, date)
+  const hint = !knowsHow && !Object.keys(history).length
   const y = history[shiftDate(date, -1)]
 
   /** A double tap on the title opens the hidden debug menu. */
@@ -263,7 +267,14 @@ export function Game(props: {
         <h1 onPointerUp={tapTitle}>{S.title(puzzle.number)}</h1>
         <div className="head-end">
           <span className="muted">{loaded && thisWeek ? S.daysThisWeek(thisWeek) : ''}</span>
-          <a className="info" href="/how-it-works" aria-label={S.how}>
+          {/* Hidden on the tap too, so a page restored by Back doesn't still show it. */}
+          <a
+            className={hint ? 'info new' : 'info'}
+            href="/how-it-works"
+            aria-label={hint ? S.howHint : S.how}
+            onClick={() => setKnowsHow(true)}
+          >
+            {hint && `${S.howHint} →`}
             <Icon name="info" />
           </a>
         </div>

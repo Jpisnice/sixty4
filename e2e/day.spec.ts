@@ -124,3 +124,26 @@ test("a page from an earlier day says so and links to today's", async ({ page })
   const link = page.locator('.yday').getByRole('link', { name: 'This day is over. A new number is ready.' })
   await expect(link).toHaveAttribute('href', '/')
 })
+
+test('points a new player to How it works, until they have seen it', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('main[data-ready]').waitFor()
+  const hint = page.getByRole('link', { name: 'How to play' })
+  await expect(hint).toHaveText('How to play →')
+
+  // A tap on the text, not the icon, opens it. Back doesn't bring the hint back.
+  await hint.click({ position: { x: 20, y: 20 } })
+  await expect(page).toHaveURL(/\/how-it-works$/)
+  await page.goBack()
+  await expect(page.getByRole('link', { name: 'How it works' })).toBeVisible()
+  await expect(hint).toHaveCount(0)
+})
+
+test('opening How it works any other way also counts', async ({ page }) => {
+  await page.goto('/how-it-works')
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('mtn:how'))).toBe('true')
+  await page.goto('/')
+  await page.locator('main[data-ready]').waitFor()
+  await expect(page.getByRole('link', { name: 'How it works' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'How to play' })).toHaveCount(0)
+})

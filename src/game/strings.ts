@@ -42,6 +42,7 @@ export const S = {
   install: 'Add to Home Screen',
   close: 'Close',
   how: 'How it works',
+  howHint: 'How to play',
   streak: (n: number) => `${n}-day streak`,
   lastWeeks: 'Last 6 weeks',
   practice: 'Practice',

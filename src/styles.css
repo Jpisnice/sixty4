@@ -282,6 +282,18 @@ button {
   .panel {
     animation: up 180ms ease-out;
   }
+  /* A few pulses around the info button, for a new player. */
+  .info.new {
+    animation: ping 1.6s ease-out 3;
+  }
+  @keyframes ping {
+    from {
+      box-shadow: 0 0 0 0 rgb(227 154 59 / 0.6);
+    }
+    to {
+      box-shadow: 0 0 0 10px rgb(227 154 59 / 0);
+    }
+  }
   @keyframes pop {
     from {
       transform: scale(0.8);
@@ -338,6 +350,16 @@ a {
   place-items: center;
   border-radius: 12px;
   color: var(--muted);
+}
+/* For a new player: "How to play" beside the icon, in one link. */
+.info.new {
+  width: auto;
+  padding: 0 10px;
+  grid-auto-flow: column;
+  gap: 6px;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--accent);
 }
 .info:hover {
   color: var(--fg);
