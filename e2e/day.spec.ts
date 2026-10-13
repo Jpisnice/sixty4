@@ -115,3 +115,12 @@ for (const width of [320, 360, 412]) {
     expect(send!.y + send!.height).toBeLessThanOrEqual(640)
   })
 }
+
+test("a page from an earlier day says so and links to today's", async ({ page }) => {
+  // The phone's clock says tomorrow, so the page it has is a day old.
+  await page.clock.setSystemTime(Date.now() + 864e5)
+  await page.goto('/')
+  await page.locator('main[data-ready]').waitFor()
+  const link = page.locator('.yday').getByRole('link', { name: 'This day is over. A new number is ready.' })
+  await expect(link).toHaveAttribute('href', '/')
+})

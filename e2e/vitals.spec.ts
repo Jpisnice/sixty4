@@ -24,3 +24,36 @@ test('sends field Web Vitals with sendBeacon', async ({ page }) => {
     .toContain('LCP')
   db.close()
 })
+
+test('starts vitals once, even when practice mode remounts the game', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('mtn:vitals', '"all"'))
+  const beacons: Array<string> = []
+  page.on('request', (r) => r.url().endsWith('/api/vitals') && beacons.push(r.postData() ?? ''))
+  const chunk = page.waitForResponse((r) => /\/assets\/vitals-[^/]+\.js$/.test(r.url()))
+  // Move the pointer off whatever it last clicked: a button that vanishes under a resting
+  // pointer keeps headless Chrome drawing frames, and idle callbacks then never run.
+  const idle = async () => {
+    await page.mouse.move(0, 0)
+    await page.evaluate(() => new Promise<void>((done) => requestIdleCallback(() => done())))
+  }
+  await page.goto('/')
+  await page.locator('main[data-ready]').waitFor()
+  await chunk
+  await idle()
+
+  // Into practice and back: two remounts, each running the idle work again.
+  const menu = page.getByRole('dialog', { name: 'Debug' })
+  await page.getByRole('heading', { level: 1 }).dblclick()
+  await menu.getByRole('button', { name: "Reset today's puzzle" }).click()
+  await expect(page.locator('.yday')).toHaveText('Practice')
+  await idle()
+  await page.getByRole('heading', { level: 1 }).dblclick()
+  await menu.getByRole('button', { name: 'Back to the real puzzle' }).click()
+  await expect(page.locator('.yday')).not.toHaveText('Practice')
+  await idle()
+
+  await page.locator('.tiles button').first().click()
+  await expect.poll(() => beacons.length).toBeGreaterThan(0)
+  await page.waitForTimeout(500)
+  expect(beacons.filter((b) => b.includes('"LCP"'))).toHaveLength(1)
+})

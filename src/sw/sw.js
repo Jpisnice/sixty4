@@ -33,7 +33,8 @@ async function page(e, key) {
   const cache = await caches.open(PAGES)
   const net = (async () => {
     const res = (await e.preloadResponse) || (await fetch(e.request))
-    if (res.ok) await cache.put(key, res.clone())
+    // Saving must not hold the page back.
+    if (res.ok) e.waitUntil(cache.put(key, res.clone()))
     return res
   })()
   try {
@@ -41,10 +42,16 @@ async function page(e, key) {
   } catch {
     const hit = await cache.match(key)
     if (!hit) return net
+    // A copy from an earlier India day has yesterday's puzzle: on a slow network,
+    // wait for today's page, and use the old copy only if the network fails.
+    if (day(hit) !== day()) return net.catch(() => hit)
     e.waitUntil(net.catch(() => {}))
     return hit
   }
 }
+
+// The India day (UTC+5:30) a saved page was fetched on, from its Date header, or today.
+const day = (res) => Math.floor(((res ? Date.parse(res.headers.get('date')) : Date.now()) + 198e5) / 864e5)
 
 // Answers sent while offline wait in IndexedDB until the phone is online.
 self.addEventListener('sync', (e) => {

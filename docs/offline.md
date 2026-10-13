@@ -113,10 +113,15 @@ The API is deliberately not cached by the worker. Answers have their own queue (
 **How a page navigation is served** (`page()` in `sw.js`):
 
 1. Start the network request. With navigation preload, the browser has already started fetching the page while the worker was starting, so this costs no extra time.
-2. If the response is good, save a copy in the `pages` cache under its path.
+2. If the response is good, save a copy in the `pages` cache under its path. The save runs alongside (`waitUntil`), so it never holds the page back.
 3. Race the network against a **2-second timer**:
    - The network wins: serve it. This is the normal case, and the player always gets today's page.
-   - The timer wins or the network fails: look in the `pages` cache. If there is a copy, serve it at once and let the network request finish in the background (`waitUntil`) to refresh the cache for next time. With no copy, wait for the network after all.
+   - The timer wins or the network fails: look in the `pages` cache.
+     - **A copy from today** (India time, judged by the copy's `Date` header): serve it at once, and let the network request finish in the background (`waitUntil`) to refresh the cache for next time.
+     - **A copy from an earlier day:** it has yesterday's puzzle, so keep waiting for the network. The old copy is used only if the network fails outright. That's better than nothing offline, and the page then says the day is over (below).
+     - **No copy:** wait for the network after all.
+
+**A page from an earlier day says so.** The game compares its puzzle's date with today's India date by the phone's clock, after hydration and again whenever the tab becomes visible. If the puzzle is older, the line under the title becomes a link: "This day is over. A new number is ready." That catches a page served offline from the cache, and a tab left open overnight. The server's date still decides what counts: a wrong phone clock can only show this link, never block play.
 
 On a repeat visit this means only the HTML crosses the network (about 3.5 KB compressed). Every script comes from the worker's cache. The e2e test checks that a repeat visit stays at 5 KB or less.
 
@@ -223,7 +228,7 @@ Duplicates are expected and harmless: Background Sync and the `online` event can
 The phone's history drives the streak, the 6-week grid and "Days this week". If the history is lost but the device ID survives (for example after "Clear history" in the debug menu, or when only some keys are cleared), it is rebuilt from the server:
 
 - At idle time, if local history is **empty**, or yesterday's entry has **no bonus yet**, the page loads `src/client/me.ts` and calls `syncHistory`.
-- `syncHistory` does nothing if it already ran today (`mtn:me`). Otherwise it calls `GET /api/me?deviceId=…` and merges the reply into local history: the last 35 days as `[date, points, bonus]`, plus yesterday's details (`same`, `players`, `bonus`) for the "Yesterday: …" line.
+- `syncHistory` does nothing if it already ran today (`mtn:me`). Otherwise it calls `GET /api/me?deviceId=…` and merges the reply into local history: the last 35 days as `[date, points, bonus]`, plus yesterday's details (`same`, `players`, `bonus`) for the "Yesterday: …" line. Today's row keeps only its points: the server reports today's bonus as 0 because it isn't known yet, and saving that 0 would make tomorrow's page think yesterday's bonus was already fetched.
 - `/api/me` replies with an `ETag` and `cache-control: private, no-cache`, so a repeat check costs a 304 with no body.
 
 The device ID itself lives only in `localStorage`. If it is lost, the server has no way to link the phone to its old answers. That is the cost of having no sign-up.
@@ -231,7 +236,7 @@ The device ID itself lives only in `localStorage`. If it is lost, the server has
 ## Limits and edge cases
 
 - **Background Sync is Chromium-only.** On Safari and Firefox, an offline answer is sent when the page sees the `online` event or the next time the game is opened. It is never lost, just sent later.
-- **Crossing midnight.** If an answer is sent offline and the phone only reconnects after midnight India time, the server refuses it with 422 `day`. The panel then says the answer was not accepted. The points recorded in history at send time stay.
+- **Crossing midnight.** If an answer is sent offline and the phone only reconnects after midnight India time, the server refuses it with 422 `day`. The panel then says the answer was not accepted. The points recorded in history at send time stay. (Opening the app just after midnight on a slow network doesn't hit this: the service worker won't serve yesterday's page while the network is still answering.)
 - **No storage.** With `localStorage` blocked, the game plays normally but forgets steps on reload, and every visit looks like a new phone.
 - **First visit offline.** The service worker only exists after one online visit, so the very first visit needs a connection.
 - **The page cache is per path and not versioned.** Each page keeps its last good copy, refreshed on every successful navigation. After a deploy, the next online visit replaces it.
@@ -246,3 +251,5 @@ The device ID itself lives only in `localStorage`. If it is lost, the server has
 | `e2e/day.spec.ts`: "sends while offline, then saves when back online" | Sends offline, sees "Will send when you are online", goes online, sees "Saved". |
 | `e2e/yesterday.spec.ts` | Clears storage, keeps only the device ID, and checks that the history and yesterday's line come back from `/api/me`. |
 | `e2e/day.spec.ts`: "plays a full day" | Reloads part-way: the steps come back from `localStorage`. |
+| `e2e/day.spec.ts`: "a page from an earlier day says so" | With the phone clock set to tomorrow, the line under the title becomes the "This day is over" link. |
+| `e2e/yesterday.spec.ts`: "a sync after today's answer leaves today's bonus unknown" | After answering, clearing history and syncing, today's entry has points but no bonus, so tomorrow fetches the real one. |

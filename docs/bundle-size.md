@@ -26,11 +26,11 @@ From `pnpm budgets` on the current build, and the repeat-visit e2e test:
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB | 114.3 KB |
-| Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
+| First-load JS, gzip | ≤ 130 KB | 114.4 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 6.1 KB |
 | Inline CSS, raw | ≤ 6 KB | 5.6 KB |
 | HTML, gzip | ≤ 8 KB (soft target 4.5 KB) | 3.5 KB |
-| Service worker code, minified | ≤ 2 KB | 1.8 KB |
+| Service worker code, minified | ≤ 2 KB | 1.9 KB |
 | Repeat visit, bytes on the wire | ≤ 5 KB | about 3.5 KB |
 
 Lighthouse CI (`lighthouserc.json`) also checks a mobile run (simulated 150 ms round trip, 1.6 Mbit/s, 4× CPU slowdown, best of 3 runs). It requires:
@@ -67,7 +67,7 @@ Every JavaScript chunk in the current build, gzip:
 | Chunk | Size | When it loads |
 | --- | --- | --- |
 | `index-*.js`: React, react-dom, router, Start runtime | 108.3 KB | First load |
-| `routes-*.js`: the game screen, rules, strings, storage, result panel, streak grid | 6.0 KB | First load |
+| `routes-*.js`: the game screen, rules, strings, storage, result panel, streak grid | 6.1 KB | First load |
 | `vitals-*.js`: web-vitals with attribution | 5.2 KB | Idle time, on a 25% sample of visits |
 | `Debug-*.js`: the hidden debug menu | 1.8 KB | Only after a double tap on the title |
 | `how-it-works-*.js` | 0.8 KB | Only on that page |

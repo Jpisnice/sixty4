@@ -4,6 +4,9 @@ import type { History } from './storage'
 export const shift = (date: string, days: number) =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * 864e5).toISOString().slice(0, 10)
 
+/** Today's India date (UTC+5:30) by the phone's clock. The server's date is the one that counts. */
+export const indiaToday = (now = Date.now()) => new Date(now + 198e5).toISOString().slice(0, 10)
+
 /** The Monday that starts the India week holding `date`. */
 export const mondayOf = (date: string) =>
   shift(date, -((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7))

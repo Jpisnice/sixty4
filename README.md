@@ -69,11 +69,11 @@ Checked by `pnpm budgets` and Lighthouse CI (`lighthouserc.json`) on every PR.
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.3 KB |
-| Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
+| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.4 KB |
+| Game code on top of the framework, gzip | ≤ 15 KB | 6.1 KB |
 | Inline CSS | ≤ 6 KB | 5.6 KB |
 | HTML, gzip | ≤ 8 KB | 3.5 KB |
-| Service worker code, minified | ≤ 2 KB | 1.8 KB |
+| Service worker code, minified | ≤ 2 KB | 1.9 KB |
 | Repeat visit transfer | ≤ 5 KB | about 3.5 KB (e2e test) |
 
 The JS budget was raised to 130 KB because the bare TanStack Start skeleton, with no game code, is already 106 KB gzip (react-dom 64 KB, router and Start's hydration runtime the rest).

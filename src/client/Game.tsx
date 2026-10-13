@@ -4,6 +4,7 @@ import { OPS, OP_SIGN, applySteps, calc, canSend, score } from '../game/rules'
 import { S } from '../game/strings'
 import type { TodayPuzzle } from '../game/puzzle'
 import type { Op, Step } from '../game/rules'
+import { indiaToday } from './history'
 import { Icon } from './icons'
 import { ResultPanel } from './ResultPanel'
 import { postAnswer } from './send'
@@ -88,6 +89,7 @@ export function Game(props: {
   const [panelOpen, setPanelOpen] = useState(false)
   const [offline, setOffline] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [stale, setStale] = useState(false)
   const [install, setInstall] = useState<InstallPrompt | null>(null)
 
   const board = useMemo(() => applySteps(tiles, state.steps), [tiles, state.steps])
@@ -104,6 +106,14 @@ export function Game(props: {
     setBuzz(read('buzz', true))
     setLoaded(true)
   }, [day])
+
+  // A page from an earlier day (served from the cache, or left open overnight) has an old puzzle.
+  useEffect(() => {
+    const check = () => setStale(indiaToday() > date)
+    check()
+    document.addEventListener('visibilitychange', check)
+    return () => document.removeEventListener('visibilitychange', check)
+  }, [date])
 
   // Never lose work: save after every step.
   useEffect(() => {
@@ -263,7 +273,9 @@ export function Game(props: {
         </div>
       </header>
       <p className="yday muted">
-        {practice ? (
+        {stale ? (
+          <a href="/">{S.dayOver}</a>
+        ) : practice ? (
           <span className="label practice">{S.practice}</span>
         ) : y?.bonus === undefined ? (
           ''

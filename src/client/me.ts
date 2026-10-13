@@ -14,7 +14,9 @@ export async function syncHistory(today: string, yesterday: string): Promise<His
     const body = (await res.json()) as MeBody
     const history = { ...read<History>('history', {}) }
     for (const [date, points, bonus] of body.days) {
-      history[date] = { ...history[date], points, bonus }
+      // Today's bonus is not known until the day closes; the server sends 0 for it.
+      // Keeping it unset lets tomorrow's page see that it still needs fetching.
+      history[date] = date < today ? { ...history[date], points, bonus } : { points }
     }
     if (body.yesterday) {
       const { points, bonus, same, players } = body.yesterday

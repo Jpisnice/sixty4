@@ -204,7 +204,7 @@ interface MeBody {
 }
 ```
 
-- `bonus` in `days` is 0 for today, because a day's bonus is only known once it has closed.
+- `bonus` in `days` is 0 for today, because a day's bonus is only known once it has closed. The page ignores it for today (see below).
 - `same` and `players` count **all** answers, while the bonus counts only **exact** answers. See [scoring.md](scoring.md#what-the-player-sees-the-next-day).
 - `private, no-cache` keeps shared caches from storing one phone's data, and makes the browser revalidate each time. With the ETag, a repeat check is a cheap 304.
 
@@ -216,7 +216,7 @@ interface MeBody {
 
 ### How the page uses it
 
-`syncHistory()` in `src/client/me.ts` calls it at idle time, at most once a day (it stores the date in `mtn:me`), and only when local history is empty or yesterday's bonus is unknown. It merges `days` and `yesterday` into local history. A failed call is ignored.
+`syncHistory()` in `src/client/me.ts` calls it at idle time, at most once a day (it stores the date in `mtn:me`), and only when local history is empty or yesterday's bonus is unknown. It merges `days` and `yesterday` into local history, keeping only the points for today, so tomorrow's page still knows yesterday's bonus needs fetching. A failed call is ignored.
 
 ## `POST /api/vitals`
 
@@ -241,7 +241,7 @@ POST /api/vitals
 | `rating` | `good`, `needs-improvement` or `poor` |
 | `target` | Optional. The CSS selector of the element behind the value, from web-vitals' attribution build, at most 100 characters |
 
-The body is checked first, then a rate limit of **200 a day per IP**. The measurement is stored in the `vitals` table with today's India date.
+The body must be a JSON object (`null`, a number or a string gets 400 too) and pass these rules. It is checked first, then a rate limit of **200 a day per IP**. The measurement is stored in the `vitals` table with today's India date.
 
 ### Responses
 
