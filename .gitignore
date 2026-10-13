@@ -20,3 +20,5 @@ data/
 test-results
 playwright-report
 .lighthouseci
+scripts/.q.mjs
+e2e/.shot*

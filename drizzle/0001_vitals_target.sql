@@ -1,0 +1,1 @@
+ALTER TABLE `vitals` ADD `target` text;
