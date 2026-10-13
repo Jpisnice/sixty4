@@ -1,10 +1,11 @@
-// Draws the app icons (6 white tiles on blue) as PNGs with zlib only.
+// Draws the app icons (6 off-white tiles on ink, one marigold) as PNGs with zlib only.
 // Usage: node scripts/make-icons.mjs
 import { writeFileSync } from 'node:fs'
 import { crc32, deflateSync } from 'node:zlib'
 
-const BG = [0x25, 0x50, 0xb8]
-const FG = [0xff, 0xff, 0xff]
+const BG = [0x08, 0x09, 0x0a]
+const FG = [0xf7, 0xf8, 0xf8]
+const ACCENT = [0xe3, 0x9a, 0x3b]
 
 function draw(size) {
   const px = Buffer.alloc(size * size * 4)
@@ -24,13 +25,14 @@ function draw(size) {
         const dx = Math.max(x0 + r - x, 0, x - (x0 + tw - r))
         const dy = Math.max(y0 + r - y, 0, y - (y0 + th - r))
         if (x >= x0 && x <= x0 + tw && y >= y0 && y <= y0 + th && dx * dx + dy * dy <= r * r)
-          return true
+          return row * 3 + col
       }
-    return false
+    return -1
   }
   for (let y = 0; y < size; y++)
     for (let x = 0; x < size; x++) {
-      const c = inTile(x + 0.5, y + 0.5) ? FG : BG
+      const t = inTile(x + 0.5, y + 0.5)
+      const c = t < 0 ? BG : t === 0 ? ACCENT : FG
       px.set([...c, 255], (y * size + x) * 4)
     }
   return png(size, px)

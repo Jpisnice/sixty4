@@ -59,20 +59,34 @@ export interface Sent {
   state: 'local' | 'saved' | 'refused'
 }
 
-/** Points per India date, kept for the 5-week grid. */
+/** Points per India date, kept for the streak grid in the corner. */
 export type History = Partial<
   Record<string, { points: number; bonus?: number; same?: number; players?: number }>
 >
 
-export const progressKey = (date: string) => `steps:${date}`
-export const sentKey = (date: string) => `sent:${date}`
+/**
+ * A debug puzzle for today, played on the phone only. Its answers are never
+ * sent. `waysTotal` is 0 when unknown: the solver lives on the server.
+ */
+export interface Practice {
+  id: string
+  date: string
+  tiles: Array<number>
+  target: number
+  waysTotal: number
+}
+
+export const progressKey = (day: string) => `steps:${day}`
+export const sentKey = (day: string) => `sent:${day}`
+/** Storage day for practice play, kept apart from the real answer. */
+export const practiceDay = (date: string) => `${date}~p`
 
 /** Drops in-progress steps and sent answers from past days. */
 export function tidy(today: string) {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i) ?? ''
-      const m = /^mtn:(?:steps|sent):(\d{4}-\d{2}-\d{2})$/.exec(key)
+      const m = /^mtn:(?:steps|sent):(\d{4}-\d{2}-\d{2})(?:~p)?$/.exec(key)
       if (m && m[1] < today) localStorage.removeItem(key)
     }
   } catch {}

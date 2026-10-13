@@ -1,4 +1,4 @@
-// Make the Number service worker. Kept small on purpose; the build injects
+// Sixty4 service worker. Kept small on purpose; the build injects
 // the hashed asset list and a version.
 const V = '__VERSION__'
 const ASSETS = __ASSETS__.map((f) => '/assets/' + f)

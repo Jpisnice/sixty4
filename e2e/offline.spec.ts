@@ -40,7 +40,7 @@ test('opens offline from the service worker, with work kept', async ({ page, con
   await context.setOffline(true)
   await page.reload()
   await page.locator('main[data-ready]').waitFor()
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Make the Number #')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Sixty4 #')
   await expect(page.locator('.steps li')).toHaveCount(1)
   await context.setOffline(false)
 })
