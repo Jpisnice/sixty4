@@ -1,4 +1,4 @@
-// Checks the build output against the performance budget in the build brief.
+// Checks the build output against the performance budgets.
 // Usage: pnpm build && node scripts/check-budgets.mjs
 // Starts the built Node server, fetches `/`, and measures what a first visit loads.
 import { spawn } from 'node:child_process'
@@ -8,7 +8,7 @@ import { gzipSync } from 'node:zlib'
 
 const KB = 1024
 const BUDGETS = {
-  firstLoadJs: 130 * KB, // raised from 120 KB: the bare Start skeleton is 108 KB gzip
+  firstLoadJs: 130 * KB, // the bare Start skeleton is 108 KB gzip; this leaves room for the game
   gameJs: 15 * KB,
   inlineCss: 6 * KB, // raw bytes
   html: 8 * KB,

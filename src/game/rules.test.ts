@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { applySteps, canSend, score } from './rules'
 import type { Step } from './rules'
 
-// The 612 puzzle from the brief. Slots 0..5 are 3, 2, 100, 10, 2, 7.
+// A sample puzzle with target 612. Slots 0..5 are 3, 2, 100, 10, 2, 7.
 const TILES = [3, 2, 100, 10, 2, 7]
 const TARGET = 612
 

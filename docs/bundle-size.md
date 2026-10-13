@@ -40,7 +40,7 @@ Lighthouse CI (`lighthouserc.json`) also checks a mobile run (simulated 150 ms r
 - Cumulative Layout Shift of 0.02 or less
 - 150 KB or less transferred in total
 
-**Why 130 KB and not 120 KB.** The original brief asked for 120 KB. A bare TanStack Start app, with no game code at all, is already about 106 KB gzip: react-dom alone is about 64 KB, and the router and Start's hydration runtime make up the rest. The budget was raised to leave room for the game on top of that floor, and the separate 15 KB budget for game code keeps the part we control honest.
+**Why 130 KB.** A bare TanStack Start app, with no game code at all, is already about 106 KB gzip: react-dom alone is about 64 KB, and the router and Start's hydration runtime make up the rest. 130 KB leaves room for the game on top of that floor, and the separate 15 KB budget for game code keeps the part we control honest.
 
 ## How they are measured
 

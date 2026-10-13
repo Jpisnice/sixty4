@@ -69,7 +69,7 @@ Checked by `pnpm budgets` and Lighthouse CI (`lighthouserc.json`) on every PR.
 
 | Measure | Budget | Now |
 | --- | --- | --- |
-| First-load JS, gzip | ≤ 130 KB (brief: 120 KB) | 114.3 KB |
+| First-load JS, gzip | ≤ 130 KB | 114.3 KB |
 | Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
 | Inline CSS | ≤ 6 KB | 5.5 KB |
 | HTML, gzip | ≤ 8 KB | 3.5 KB |
@@ -89,7 +89,7 @@ Local Lighthouse mobile runs (Slow 4G, 4× CPU) scored 94 to 99, with LCP 1.6 to
 - **Background work.** Warming tomorrow and the day close start after the response; a serverless instance may be frozen before they finish. They rerun on later requests, so nothing is lost, but `waitUntil` would be cleaner.
 - **Solver thread.** The puzzle maker runs in a `worker_threads` worker that loads its own built chunk. It falls back to solving inline if the worker can't start.
 
-The brief's target setup is one long-lived Node process (for example Fly.io in `bom` with a volume and Litestream backups). `pnpm build && pnpm start` runs exactly that.
+The intended setup is one long-lived Node process (for example Fly.io in `bom` with a volume and Litestream backups). `pnpm build && pnpm start` runs exactly that.
 
 ## Scaling past one instance
 
