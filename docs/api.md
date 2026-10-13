@@ -371,4 +371,4 @@ Defined in `src/server/db/schema.ts` with Drizzle. Migrations live in `drizzle/`
 | `devices` | `device_id` (key), `reminder_slot`, `push_subscription`, `created_at` | A row per phone that has answered. The reminder and push columns are reserved for a future feature. |
 | `vitals` | `id`, `name`, `value`, `rating`, `target`, `date` | Field measurements from `/api/vitals`. Index on `date`. |
 
-The database is a local SQLite file by default (`DATABASE_URL=file:data/sixty4.db`, in WAL mode), or a Turso database in production (`DATABASE_URL` and `DATABASE_AUTH_TOKEN`).
+The database is a local SQLite file by default (`DATABASE_URL=file:data/sixty4.db`, in WAL mode), or a Turso database in production (`DATABASE_URL` and `DATABASE_AUTH_TOKEN`, or `DATABASE_TURSO_DATABASE_URL` and `DATABASE_TURSO_AUTH_TOKEN` from the Vercel Turso integration).

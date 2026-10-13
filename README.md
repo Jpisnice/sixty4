@@ -78,6 +78,7 @@ The local database is created at `data/sixty4.db` on first request; migrations r
 | --- | --- | --- |
 | `DATABASE_URL` | `file:data/sixty4.db` | libSQL URL: a local file, or a Turso database in production |
 | `DATABASE_AUTH_TOKEN` | none | Turso auth token |
+| `DATABASE_TURSO_DATABASE_URL`, `DATABASE_TURSO_AUTH_TOKEN` | none | Set by the Vercel Turso integration. Used when `DATABASE_URL` and `DATABASE_AUTH_TOKEN` are not set |
 | `LAUNCH_DATE` | `2026-10-12` | India date of puzzle #1 |
 | `PORT` | `3000` | Node server port |
 
@@ -133,7 +134,7 @@ Local Lighthouse mobile runs (Slow 4G, 4× CPU) scored 94 to 99, with LCP 1.6 to
 
 `vercel.json` pins functions to `bom1` (Mumbai). Nitro detects Vercel at build time. Known gaps, to deal with later:
 
-- **Database.** Set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` to a Turso database. Without them the app falls back to `/tmp`, which Vercel wipes.
+- **Database.** The live site uses Turso through the Vercel Turso integration, which sets `DATABASE_TURSO_DATABASE_URL` and `DATABASE_TURSO_AUTH_TOKEN` for Production and Preview. Migrations run on the first request. Without a database URL the app falls back to `/tmp`, which Vercel wipes.
 - **Per-instance memory.** The puzzle cache, the single-flight map and the rate limits live in each function instance, so limits are looser across instances.
 - **Background work.** Warming tomorrow and the day close start after the response; a serverless instance may be frozen before they finish. They rerun on later requests, so nothing is lost, but `waitUntil` would be cleaner.
 - **Solver thread.** The puzzle maker runs in a `worker_threads` worker that loads its own built chunk. It falls back to solving inline if the worker can't start.
