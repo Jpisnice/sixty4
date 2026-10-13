@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { S } from '../game/strings'
 import type { TodayPuzzle } from '../game/puzzle'
 import { streak } from './history'
@@ -19,6 +19,24 @@ export function ResultPanel(props: {
 }) {
   const { puzzle, sent, history } = props
   const [copied, setCopied] = useState(false)
+  const run = streak(history, puzzle.date)
+
+  // Draw the card as the panel opens: a share has to start soon after the tap.
+  const card = useRef<Promise<File | null>>(null)
+  useEffect(() => {
+    card.current = import('./share').then((m) =>
+      m.cardFile({
+        number: puzzle.number,
+        target: puzzle.target,
+        points: sent.points,
+        exact: sent.exact,
+        distance: sent.distance,
+        tiles: sent.tiles,
+        ops: sent.ops,
+        streak: run,
+      }),
+    )
+  }, [puzzle, sent, run])
 
   const lines = sent.exact
     ? [S.tilePoints(sent.tiles), S.kindPoints(sent.kinds)]
@@ -27,9 +45,9 @@ export function ResultPanel(props: {
       : [S.wastedPoints]
 
   async function share() {
-    const { shareText } = await import('./share')
-    const text = S.shareText(puzzle.number, sent.exact, sent.tiles, sent.ops, sent.points)
-    if ((await shareText(text)) === 'copied') setCopied(true)
+    const { shareCard } = await import('./share')
+    const text = S.shareText(puzzle.number, puzzle.target, sent.exact, sent.points)
+    if ((await shareCard(text, await card.current)) === 'copied') setCopied(true)
   }
 
   const status = props.practice ? (
@@ -49,8 +67,6 @@ export function ResultPanel(props: {
   ) : (
     <span className="muted">{S.sending}</span>
   )
-
-  const run = streak(history, puzzle.date)
 
   return (
     <section className="panel" role="dialog" aria-modal="false" aria-labelledby="result-title">

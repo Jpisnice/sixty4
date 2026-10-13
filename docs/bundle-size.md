@@ -74,7 +74,7 @@ Every JavaScript chunk in the current build, gzip:
 | `idle-*.js`: service worker registration, install prompt | 355 B | Idle time |
 | `queue-*.js`: IndexedDB offline queue | 346 B | Only when an answer can't be sent |
 | `me-*.js`: history sync | 315 B | Idle time, only when history is missing |
-| `share-*.js`: share or copy | 194 B | Only when Share is tapped |
+| `share-*.js`: draws the share card, shares or copies | 1.3 KB | When the result panel opens |
 
 First load is the first two rows. Everything else is fetched on demand, and none of it is needed to show or play the puzzle.
 
@@ -87,7 +87,7 @@ The game's code is split by **when it is needed**, not by feature. Anything not 
 - **`idle.ts`** runs after the `load` event and then `requestIdleCallback`. It registers the service worker, listens for the install prompt, and maybe starts field vitals. None of that may delay first paint.
 - **`me.ts`** (history sync) loads only when local history is empty or yesterday's bonus is unknown.
 - **`queue.ts`** (IndexedDB) loads only when an answer fails to send.
-- **`share.ts`** loads when Share is tapped.
+- **`share.ts`** loads when the result panel opens, and draws the share card there, so a tap on Share can start sharing at once (browsers allow a share only soon after a tap).
 - **`Debug.tsx`** is a `React.lazy` component, mounted inside `<Suspense>` only after a double tap on the title.
 
 The router never preloads other routes (`defaultPreload: false` in `src/router.tsx`). The How it works page is fetched only when visited.

@@ -56,6 +56,11 @@ export const S = {
   simulate: (n: number) => `${n} days`,
   simulateLabel: 'Simulate a streak',
   clearHistory: 'Clear history',
-  shareText: (n: number, exact: boolean, tiles: number, ops: string, points: number) =>
-    `Sixty4 #${n} ${exact ? '✔' : '≈'} ${tiles} tiles · ${ops} · ${num(points)} points`,
+  shareText: (n: number, target: number, exact: boolean, points: number) =>
+    exact
+      ? `Sixty4 #${n}: I made ${num(target)} for ${num(points)} points. Can you find another way?`
+      : `Sixty4 #${n}: I got close to ${num(target)} for ${num(points)} points. Can you make it?`,
+  cardExact: 'Exact',
+  cardTiles: (t: number) => `${t} tiles`,
+  cardTry: 'Can you make it?',
 }

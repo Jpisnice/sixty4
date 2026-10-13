@@ -58,7 +58,7 @@ test('plays a full day: open, solve, send, share, reopen', async ({ page, contex
   await panel.getByRole('button', { name: 'Share' }).click()
   await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible()
   const shared = await page.evaluate(() => navigator.clipboard.readText())
-  expect(shared).toMatch(/^Sixty4 #\d+ ✔ \d tiles · .+ · \d+ points$/)
+  expect(shared).toMatch(/^Sixty4 #\d+: I made [\d,]+ for \d+ points\. .+\r?\nhttp:\/\/[^/]+\/$/)
 
   await page.reload()
   await expect(page.getByRole('dialog').getByText('Saved')).toBeVisible()
