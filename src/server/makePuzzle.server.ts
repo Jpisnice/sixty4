@@ -1,3 +1,4 @@
+import { puzzleNumber } from './ist'
 import { solve } from './solve.server'
 import type { Solution } from './solve.server'
 
@@ -12,24 +13,43 @@ export interface MadePuzzle {
 
 const BIG = [25, 50, 75, 100]
 const MAX_DRAWS = 50
+/** From this puzzle number on, puzzles are at full difficulty. */
+export const FULL_FROM = 30
+
+/**
+ * How hard the puzzle with number `n` may be. Puzzle #1 has a target from 20
+ * to 99 and at least 40 ways; by puzzle #30 it is 101 to 999 and at least 10.
+ * The target range eases in, so the first week stays mostly two-digit.
+ */
+export function rampFor(n: number) {
+  const t = Math.min(1, Math.max(0, (n - 1) / (FULL_FROM - 1)))
+  const e = t * t
+  return {
+    minTarget: Math.round(20 + 81 * e),
+    maxTarget: Math.round(99 + 900 * e),
+    minWays: Math.round(40 - 30 * t),
+  }
+}
 
 /**
  * Makes the puzzle for an India date (YYYY-MM-DD). The same date always gives
- * the same puzzle. A draw is kept when it has 10 to 300 different ways and
- * none that uses only 2 tiles; otherwise the next draw comes from the same seed.
+ * the same puzzle. A draw is kept when it has enough ways for its place in the
+ * ramp, at most 300, and none that uses only 2 tiles; otherwise the next draw
+ * comes from the same seed.
  */
-export function makePuzzle(date: string): MadePuzzle {
+export function makePuzzle(date: string, n = puzzleNumber(date)): MadePuzzle {
+  const ramp = rampFor(n)
   const rand = mulberry32(cyrb53(date))
-  const int = (n: number) => Math.floor(rand() * n)
+  const int = (k: number) => Math.floor(rand() * k)
   for (let draws = 1; draws <= MAX_DRAWS; draws++) {
     const bigCount = rand() < 0.5 ? 1 : 2
     const big = shuffle(BIG.slice(), int).slice(0, bigCount)
     const small = Array.from({ length: 6 - bigCount }, () => 1 + int(10))
     const tiles = shuffle([...big, ...small], int)
-    const target = 101 + int(899)
+    const target = ramp.minTarget + int(ramp.maxTarget - ramp.minTarget + 1)
     const solutions = solve(tiles, target)
     const ok =
-      solutions.length >= 10 &&
+      solutions.length >= ramp.minWays &&
       solutions.length <= 300 &&
       solutions.every((s) => s.tiles > 2)
     if (ok) return { date, tiles, target, solutions, draws }
