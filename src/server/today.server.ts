@@ -12,5 +12,5 @@ export async function loadToday(): Promise<TodayPuzzle> {
     'Cache-Control',
     `public, max-age=0, s-maxage=${secondsUntilMidnightIST()}, stale-while-revalidate=60`,
   )
-  return { date, number: p.number, tiles: p.tiles, target: p.target, waysTotal: p.waysTotal }
+  return { date, tiles: p.tiles, target: p.target, waysTotal: p.waysTotal }
 }

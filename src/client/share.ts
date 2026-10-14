@@ -2,7 +2,6 @@ import { num } from '../game/format'
 import { S } from '../game/strings'
 
 export interface Card {
-  number: number
   target: number
   points: number
   exact: boolean
@@ -41,7 +40,7 @@ export function cardSvg(c: Card, host: string) {
   const detail = [c.exact ? S.cardExact : S.away(c.distance), S.cardTiles(c.tiles), c.ops]
   return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="640" viewBox="0 0 600 640">
 <rect width="600" height="640" fill="${BG}"/>
-<text x="48" y="84" font-family="${SERIF}" font-size="30" letter-spacing="-0.6" fill="${FG}">${S.title(c.number)}</text>
+<text x="48" y="84" font-family="${SERIF}" font-size="30" letter-spacing="-0.6" fill="${FG}">${S.title}</text>
 ${c.streak >= 2 ? `<text x="552" y="82" text-anchor="end" font-family="${MONO}" font-size="13" letter-spacing="2" fill="${ACCENT}">${S.streak(c.streak).toUpperCase()}</text>` : ''}
 <g text-anchor="middle">
 <text x="300" y="164" font-family="${MONO}" font-size="13" letter-spacing="2.4" fill="${MUTED}">${S.target.toUpperCase()}</text>
@@ -67,7 +66,7 @@ export async function cardFile(c: Card): Promise<File | null> {
     canvas.height = 1280
     canvas.getContext('2d')!.drawImage(img, 0, 0, 1200, 1280)
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'))
-    return blob && new File([blob], `sixty4-${c.number}.png`, { type: 'image/png' })
+    return blob && new File([blob], 'sixty4.png', { type: 'image/png' })
   } catch {
     return null
   }

@@ -4,7 +4,7 @@ import { num } from './format'
 import type { Op, Waste } from './rules'
 
 export const S = {
-  title: (n: number) => `Sixty4 #${n}`,
+  title: 'Sixty4',
   daysThisWeek: (n: number) => `Days this week: ${n}`,
   yesterday: (same: number, players: number, bonus: number) =>
     `Yesterday: ${num(same)} of ${num(players)} players found your way, +${bonus}`,
@@ -57,10 +57,10 @@ export const S = {
   simulate: (n: number) => `${n} days`,
   simulateLabel: 'Simulate a streak',
   clearHistory: 'Clear history',
-  shareText: (n: number, target: number, exact: boolean, points: number) =>
+  shareText: (target: number, exact: boolean, points: number) =>
     exact
-      ? `Sixty4 #${n}: I made ${num(target)} for ${num(points)} points. Can you find another way?`
-      : `Sixty4 #${n}: I got close to ${num(target)} for ${num(points)} points. Can you make it?`,
+      ? `Sixty4: I made ${num(target)} for ${num(points)} points. Can you find another way?`
+      : `Sixty4: I got close to ${num(target)} for ${num(points)} points. Can you make it?`,
   cardExact: 'Exact',
   cardTiles: (t: number) => `${t} tiles`,
   cardTry: 'Can you make it?',

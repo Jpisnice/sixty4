@@ -339,7 +339,7 @@ export const getToday = createServerFn({ method: 'GET' }).handler(() => loadToda
 - It returns `TodayPuzzle` (`src/game/puzzle.ts`):
 
   ```ts
-  { date: '2026-10-13', number: 2, tiles: [4, 100, 2, 3, 4, 7], target: 37, waysTotal: 97 }
+  { date: '2026-10-13', tiles: [4, 100, 2, 3, 4, 7], target: 37, waysTotal: 97 }
   ```
 
   It **never** includes the solutions: those are the answer key and stay on the server.

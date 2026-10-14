@@ -35,7 +35,7 @@ test('plays a full day: open, solve, send, share, reopen', async ({ page, contex
   })
 
   const { tiles, target } = await readPuzzle(page)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Sixty4 #')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sixty4')
   const steps = findSteps(tiles, target)
   expect(steps).not.toBeNull()
 
@@ -58,7 +58,7 @@ test('plays a full day: open, solve, send, share, reopen', async ({ page, contex
   await panel.getByRole('button', { name: 'Share' }).click()
   await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible()
   const shared = await page.evaluate(() => navigator.clipboard.readText())
-  expect(shared).toMatch(/^Sixty4 #\d+: I made [\d,]+ for \d+ points\. .+\r?\nhttp:\/\/[^/]+\/$/)
+  expect(shared).toMatch(/^Sixty4: I made [\d,]+ for \d+ points\. .+\r?\nhttp:\/\/[^/]+\/$/)
 
   await page.reload()
   await expect(page.getByRole('dialog').getByText('Saved')).toBeVisible()

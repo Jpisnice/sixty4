@@ -26,7 +26,6 @@ export function ResultPanel(props: {
   useEffect(() => {
     card.current = import('./share').then((m) =>
       m.cardFile({
-        number: puzzle.number,
         target: puzzle.target,
         points: sent.points,
         exact: sent.exact,
@@ -46,7 +45,7 @@ export function ResultPanel(props: {
 
   async function share() {
     const { shareCard } = await import('./share')
-    const text = S.shareText(puzzle.number, puzzle.target, sent.exact, sent.points)
+    const text = S.shareText(puzzle.target, sent.exact, sent.points)
     if ((await shareCard(text, await card.current)) === 'copied') setCopied(true)
   }
 

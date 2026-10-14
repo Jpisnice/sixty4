@@ -286,7 +286,7 @@ export function Game(props: {
   return (
     <main className="game" data-ready={loaded || undefined}>
       <header className="head">
-        <h1 onPointerUp={tapTitle}>{S.title(puzzle.number)}</h1>
+        <h1 onPointerUp={tapTitle}>{S.title}</h1>
         <div className="head-end">
           <span className="muted">{loaded && thisWeek ? S.daysThisWeek(thisWeek) : ''}</span>
           {/* Hidden on the tap too, so a page restored by Back doesn't still show it. */}

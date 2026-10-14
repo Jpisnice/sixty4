@@ -11,14 +11,13 @@ test('restores yesterday and the grid from the server after storage is cleared',
   const today = await page.evaluate(
     () => Object.keys(localStorage).find((k) => k.startsWith('mtn:steps:'))!.slice(10),
   )
-  const number = Number(
-    (await page.getByRole('heading', { level: 1 }).textContent())!.replace(/\D+/g, ''),
-  )
   const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 864e5).toISOString().slice(0, 10)
 
   // Yesterday: 3 players, 2 found the same way as this phone, 1 found a rare way.
   const me = crypto.randomUUID()
   const db = createClient({ url: 'file:data/e2e.db' })
+  const { rows } = await db.execute({ sql: 'SELECT number FROM puzzles WHERE date = ?', args: [today] })
+  const number = Number(rows[0].number)
   await db.execute({
     sql: `INSERT OR IGNORE INTO puzzles (date, number, tiles, target, solutions, ways_total)
           VALUES (?, ?, '[1,2,3,4,5,100]', 500, '[]', 12)`,
