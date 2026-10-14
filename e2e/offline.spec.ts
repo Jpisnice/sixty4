@@ -70,3 +70,38 @@ test('a repeat visit transfers 5 KB or less', async ({ page, baseURL }) => {
   console.log(`page ${pageBytes} B, HTML on the wire ${html} B`)
   expect(pageBytes + html).toBeLessThanOrEqual(5 * 1024)
 })
+
+test("a page the CDN made before midnight is fetched again for today's", async ({ page, context }) => {
+  await openControlled(page)
+  // Playwright can't route a navigation preload, so the worker fetches the page itself.
+  await page.evaluate(async () => (await navigator.serviceWorker.ready).navigationPreload.disable())
+  // The first answer is the CDN's copy made yesterday and kept a day (Age), as it is served
+  // once after midnight. It is marked so the test can tell it apart.
+  const asked: Array<string> = []
+  let marked = false
+  await context.route('/', async (route) => {
+    const pragma = (await route.request().headerValue('pragma')) ?? ''
+    asked.push(pragma)
+    const res = await route.fetch()
+    if (pragma) return route.fulfill({ response: res })
+    const body = (await res.text()).replace('<title>Sixty4</title>', '<title>Old</title>')
+    marked = body.includes('<title>Old</title>')
+    // The body is sent uncompressed now.
+    const headers = res.headers()
+    delete headers['content-encoding']
+    delete headers['content-length']
+    headers.date = new Date(Date.now() - 864e5).toUTCString()
+    headers.age = '86400'
+    await route.fulfill({ response: res, body, headers })
+  })
+  await page.reload()
+  await page.locator('main[data-ready]').waitFor()
+
+  // The worker asked again with pragma: no-cache, which makes the CDN build today's page,
+  // then served and saved that page rather than the old copy.
+  expect(marked).toBe(true)
+  expect(asked).toEqual(['', 'no-cache'])
+  await expect(page).toHaveTitle('Sixty4')
+  const saved = await page.evaluate(async () => (await (await caches.open('pages')).match('/'))?.text())
+  expect(saved).toContain('<title>Sixty4</title>')
+})

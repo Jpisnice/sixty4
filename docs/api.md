@@ -343,7 +343,7 @@ export const getToday = createServerFn({ method: 'GET' }).handler(() => loadToda
   ```
 
   It **never** includes the solutions: those are the answer key and stay on the server.
-- `loadToday()` (`src/server/today.server.ts`) also sets the response's cache header to `public, max-age=0, s-maxage=<seconds until India midnight>, stale-while-revalidate=60`, so a CDN can share one copy of the page with everyone until the day changes, and starts the day's warm-up.
+- `loadToday()` (`src/server/today.server.ts`) also sets the response's cache header to `public, max-age=0, s-maxage=<seconds until India midnight>, stale-while-revalidate=60`, so a CDN can share one copy of the page with everyone until the day changes, and starts the day's warm-up. Vercel's CDN still serves its old copy to the first visitor after midnight while it makes the new one; the service worker and the page handle that (see [offline.md](offline.md#a-new-day)).
 
 ## Error codes at a glance
 

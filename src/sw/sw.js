@@ -1,20 +1,20 @@
 // Sixty4 service worker. Kept small on purpose; the build injects
 // the hashed asset list and a version.
-const V = '__VERSION__'
 const ASSETS = __ASSETS__.map((f) => '/assets/' + f)
-const STATIC = 'static-' + V
+// The version is written into the name: a separate top-level const would stay in the minified file.
+const STATIC = 'static-__VERSION__'
 const PAGES = 'pages'
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(STATIC).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()))
+  e.waitUntil(caches.open(STATIC).then((c) => c.addAll(ASSETS)).then(() => skipWaiting()))
 })
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     (async () => {
-      if (self.registration.navigationPreload) await self.registration.navigationPreload.enable()
+      await registration.navigationPreload?.enable()
       for (const k of await caches.keys()) if (k !== STATIC && k !== PAGES) await caches.delete(k)
-      await self.clients.claim()
+      await clients.claim()
     })(),
   )
 })
@@ -32,9 +32,17 @@ self.addEventListener('fetch', (e) => {
 async function page(e, key) {
   const cache = await caches.open(PAGES)
   const net = (async () => {
-    const res = (await e.preloadResponse) || (await fetch(e.request))
-    // Saving must not hold the page back.
-    if (res.ok) e.waitUntil(cache.put(key, res.clone()))
+    let res = (await e.preloadResponse) || (await fetch(e.request))
+    // Once a page's cache time ends at India midnight, the CDN still serves its old copy to
+    // the next visitor while it makes a new one. That copy has yesterday's puzzle: ask the
+    // CDN to make today's now (pragma: no-cache) and wait for it.
+    if (old(res))
+      res = await fetch(key, { headers: { pragma: 'no-cache' }, cache: 'no-store' }).then(
+        (fresh) => (fresh.ok ? fresh : res),
+        () => res,
+      )
+    // Saving must not hold the page back, and an old copy must not replace a good one.
+    if (res.ok && !old(res)) e.waitUntil(cache.put(key, res.clone()))
     return res
   })()
   try {
@@ -44,14 +52,19 @@ async function page(e, key) {
     if (!hit) return net
     // A copy from an earlier India day has yesterday's puzzle: on a slow network,
     // wait for today's page, and use the old copy only if the network fails.
-    if (day(hit) !== day()) return net.catch(() => hit)
+    if (day(made(hit)) !== day()) return net.catch(() => hit)
     e.waitUntil(net.catch(() => {}))
     return hit
   }
 }
 
-// The India day (UTC+5:30) a saved page was fetched on, from its Date header, or today.
-const day = (res) => Math.floor(((res ? Date.parse(res.headers.get('date')) : Date.now()) + 198e5) / 864e5)
+// When a response was made, from its Date header. A CDN keeps that on its copies and adds Age.
+const made = (res) => Date.parse(res.headers.get('date'))
+// The India day (UTC+5:30) of a time, or of now.
+const day = (t = Date.now()) => Math.floor((t + 198e5) / 864e5)
+// A CDN copy made on an earlier India day than the one it is served on. Only the server's
+// and the CDN's clocks count, so a wrong phone clock can't set this off.
+const old = (res, t = made(res)) => day(t) < day(t + res.headers.get('age') * 1e3)
 
 // Answers sent while offline wait in IndexedDB until the phone is online.
 self.addEventListener('sync', (e) => {
@@ -81,7 +94,7 @@ async function flush() {
     if (res.status >= 500 || res.status === 429) throw new Error('retry')
     const data = await res.json().catch(() => ({}))
     await done((await store('readwrite')).delete(body.id))
-    for (const c of await self.clients.matchAll())
+    for (const c of await clients.matchAll())
       c.postMessage({ type: 'answer', id: body.id, status: res.status, data })
   }
 }

@@ -30,7 +30,7 @@ From `pnpm budgets` on the current build, and the repeat-visit e2e test:
 | Game code on top of the framework, gzip | ≤ 15 KB | 6.0 KB |
 | Inline CSS, raw | ≤ 6 KB | 5.5 KB |
 | HTML, gzip | ≤ 8 KB (soft target 4.5 KB) | 3.5 KB |
-| Service worker code, minified | ≤ 2 KB | 1.9 KB |
+| Service worker code, minified | ≤ 2 KB | 2.0 KB |
 | Repeat visit, bytes on the wire | ≤ 5 KB | about 3.5 KB |
 
 Lighthouse CI (`lighthouserc.json`) also checks a mobile run (simulated 150 ms round trip, 1.6 Mbit/s, 4× CPU slowdown, best of 3 runs). It requires:
@@ -131,7 +131,7 @@ What the page does share with the server is `src/game/rules.ts`, the pure game r
 
 ### A tiny, hand-written service worker
 
-A service-worker library would cost more than the whole game. `src/sw/sw.js` is 80 lines that do exactly what the game needs: precache, network-first pages, cache-first assets and the answer queue. `sw-plugin.ts` minifies it with `rolldown/utils` (top-level mangling on) to stay under 2 KB. See [offline.md](offline.md#the-service-worker).
+A service-worker library would cost more than the whole game. `src/sw/sw.js` is about 90 lines that do exactly what the game needs: precache, network-first pages, cache-first assets and the answer queue. `sw-plugin.ts` minifies it with `rolldown/utils` (top-level mangling on) to stay under 2 KB. See [offline.md](offline.md#the-service-worker).
 
 ### Compression and caching
 

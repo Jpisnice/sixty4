@@ -110,12 +110,34 @@ export function Game(props: {
     setLoaded(true)
   }, [day])
 
-  // A page from an earlier day (served from the cache, or left open overnight) has an old puzzle.
+  // A page from an earlier day (left open overnight, restored by Back, or served stale by the
+  // CDN) has an old puzzle. Ask for a new page (pragma: no-cache, so the CDN makes today's),
+  // and reload only if the server's date on it has moved on. Otherwise the phone's clock is
+  // wrong, or the phone is offline: the link under the title stays.
   useEffect(() => {
-    const check = () => setStale(indiaToday() > date)
+    let asking = false
+    const check = () => {
+      const old = indiaToday() > date
+      setStale(old)
+      if (!old || asking || document.hidden) return
+      asking = true
+      fetch('/', { headers: { pragma: 'no-cache' }, cache: 'no-store' })
+        .then((res) => {
+          const made = Date.parse(res.headers.get('date') ?? '')
+          if (made && indiaToday(made) > date) location.reload()
+        })
+        .catch(() => {})
+        .finally(() => (asking = false))
+    }
     check()
     document.addEventListener('visibilitychange', check)
-    return () => document.removeEventListener('visibilitychange', check)
+    window.addEventListener('pageshow', check)
+    window.addEventListener('online', check)
+    return () => {
+      document.removeEventListener('visibilitychange', check)
+      window.removeEventListener('pageshow', check)
+      window.removeEventListener('online', check)
+    }
   }, [date])
 
   // Never lose work: save after every step.

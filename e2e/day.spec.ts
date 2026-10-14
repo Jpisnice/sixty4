@@ -116,13 +116,57 @@ for (const width of [320, 360, 412]) {
   })
 }
 
-test("a page from an earlier day says so and links to today's", async ({ page }) => {
-  // The phone's clock says tomorrow, so the page it has is a day old.
+test("a phone clock ahead of the server's shows the link, without reloading", async ({ page }) => {
+  // The phone's clock says tomorrow, but the server's date has not moved on.
   await page.clock.setSystemTime(Date.now() + 864e5)
+  let loads = 0
+  let asks = 0
+  page.on('load', () => loads++)
+  page.on('response', (r) => {
+    if (r.request().headers().pragma === 'no-cache') asks++
+  })
   await page.goto('/')
   await page.locator('main[data-ready]').waitFor()
   const link = page.locator('.yday').getByRole('link', { name: 'This day is over. A new number is ready.' })
   await expect(link).toHaveAttribute('href', '/')
+
+  // It asks for a new page each time it is shown, and the server's date keeps it from reloading.
+  await expect.poll(() => asks).toBe(1)
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => asks).toBe(2)
+  await page.waitForTimeout(300)
+  expect(loads).toBe(1)
+})
+
+test('a page left open overnight reloads for the new day when it is shown again', async ({ page }) => {
+  let loads = 0
+  page.on('load', () => loads++)
+  await page.goto('/')
+  await page.locator('main[data-ready]').waitFor()
+  await expect(page.locator('.yday a')).toHaveCount(0)
+
+  // Midnight passes while the phone is locked. The server can't be moved to tomorrow, so the
+  // first new page it sends says tomorrow in its Date header; later ones say today again.
+  const tomorrow = Date.now() + 864e5
+  await page.clock.setSystemTime(tomorrow)
+  let asks = 0
+  await page.route('/', async (route) => {
+    const res = await route.fetch()
+    const headers = res.headers()
+    if (route.request().headers().pragma === 'no-cache' && ++asks === 1) {
+      headers.date = new Date(tomorrow).toUTCString()
+    }
+    await route.fulfill({ response: res, headers })
+  })
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect.poll(() => loads).toBe(2)
+
+  // After the reload the server's date is today again, so the page stops and shows the link.
+  await page.locator('main[data-ready]').waitFor()
+  await expect.poll(() => asks).toBe(2)
+  await expect(page.locator('.yday a')).toHaveAttribute('href', '/')
+  await page.waitForTimeout(300)
+  expect(loads).toBe(2)
 })
 
 test('points a new player to How it works, until they have seen it', async ({ page }) => {
