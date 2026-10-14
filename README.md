@@ -51,6 +51,7 @@ When players earn something of value on a platform, they need to trust it. A wro
 ### Where I used AI
 
 - **Research** into the patterns that make people come back to an app, which shaped the two-day reward loop above.
+- **Looking for ways to make the app fast and reliable on a phone**: how the CDN caches the page, a service worker that serves repeat visits from the phone and works offline, and keeping the scripts small. AI suggested and explained the techniques, and I chose which ones to use ([offline.md](docs/offline.md), [bundle-size.md](docs/bundle-size.md)). It also helped find why the first visit after midnight could show yesterday's puzzle: the CDN still served its old copy.
 - **Inline assists** while writing code.
 - **Generating code blocks** for tests and for some functional modules, which I then reviewed and changed.
 - **The docs in [`docs/`](docs)** were written with AI, from my direction, mainly to get the diagrams and tables into clean Markdown.
